@@ -47,8 +47,43 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
     super.dispose();
   }
 
+  void _scrollToFirstError() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final formContext = _formKey.currentContext;
+      if (formContext != null) {
+        final formRenderBox = formContext.findRenderObject() as RenderBox?;
+        if (formRenderBox != null) {
+          // Find the first TextFormField with an error
+          void findFirstErrorField(Element element) {
+            if (element.widget is TextFormField) {
+              final textFormField = element.widget as TextFormField;
+              final fieldState = element as StatefulElement;
+              if (fieldState.state is FormFieldState) {
+                final formFieldState = fieldState.state as FormFieldState;
+                if (formFieldState.hasError) {
+                  // Scroll to this field
+                  Scrollable.ensureVisible(
+                    element,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                  );
+                  return;
+                }
+              }
+            }
+            element.visitChildren(findFirstErrorField);
+          }
+          formContext.visitChildElements(findFirstErrorField);
+        }
+      }
+    });
+  }
+
   void _calculate() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      _scrollToFirstError();
+      return;
+    }
 
     final principalA = CurrencyFormatter.parseWon(_principalAController.text);
     final interestRateA = CurrencyFormatter.parsePercent(_interestRateAController.text);
