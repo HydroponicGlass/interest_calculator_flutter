@@ -15,92 +15,46 @@ class InterestCalculator {
 
   static InterestCalculationResult _calculateCheckingInterest(InterestCalculationInput input) {
     List<PeriodResult> periodResults = [];
-    double totalPrincipal = 0;
+    double totalPrincipal = input.monthlyDeposit * input.periodMonths;
     double totalInterest = 0;
+    double interestRateDecimal = input.interestRate / 100;
 
+    // Generate period-by-period results exactly matching original Kotlin SetCheckingInterest logic
     for (int month = 1; month <= input.periodMonths; month++) {
-      totalPrincipal += input.monthlyDeposit;
+      double monthPrincipal = input.monthlyDeposit * month;
+      double monthInterest = 0;
       
-      // Calculate interest for each month's deposit based on how long it stays
-      double monthlyInterest = 0;
-      for (int depositMonth = 1; depositMonth <= month; depositMonth++) {
-        int remainingMonths = month - depositMonth + 1;
-        double depositInterest = 0;
-        
-        switch (input.interestType) {
-          case InterestType.simple:
-            depositInterest = input.monthlyDeposit * (input.interestRate / 100) * (remainingMonths / 12);
-            break;
-          case InterestType.compoundMonthly:
-            if (remainingMonths > 0) {
-              depositInterest = input.monthlyDeposit * (pow(1 + (input.interestRate / 100 / 12), remainingMonths) - 1);
-            }
-            break;
-          case InterestType.compoundDaily:
-            if (remainingMonths > 0) {
-              depositInterest = input.monthlyDeposit * (pow(1 + (input.interestRate / 100 / 365), remainingMonths * 30) - 1);
-            }
-            break;
-        }
-        monthlyInterest += depositInterest;
+      // Calculate interest exactly as original Kotlin SetCheckingInterest does
+      switch (input.interestType) {
+        case InterestType.simple:
+          // Original: amount * interest_rate * month / interest_type.value (where SIMPLE.value = 12)
+          monthInterest = input.monthlyDeposit * interestRateDecimal * month / 12;
+          break;
+        case InterestType.compoundMonthly:
+          // Original: amount * ((1+interest_rate/interest_type.value)^month - 1) (where COMPOUND_MONTHLY.value = 12)
+          monthInterest = input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, month) - 1);
+          break;
+        case InterestType.compoundDaily:
+          // Original: amount * ((1+interest_rate/interest_type.value)^(month*30) - 1) (where COMPOUND_DAILY.value = 365)
+          monthInterest = input.monthlyDeposit * (pow(1 + interestRateDecimal / 365, month * 30) - 1);
+          break;
       }
 
-      // Calculate total accumulated interest up to this point
-      double cumulativeInterest = 0;
-      for (int depositMonth = 1; depositMonth <= month; depositMonth++) {
-        int remainingMonths = input.periodMonths - depositMonth + 1;
-        double depositInterest = 0;
-        
-        switch (input.interestType) {
-          case InterestType.simple:
-            depositInterest = input.monthlyDeposit * (input.interestRate / 100) * (remainingMonths / 12);
-            break;
-          case InterestType.compoundMonthly:
-            if (remainingMonths > 0) {
-              depositInterest = input.monthlyDeposit * (pow(1 + (input.interestRate / 100 / 12), remainingMonths) - 1);
-            }
-            break;
-          case InterestType.compoundDaily:
-            if (remainingMonths > 0) {
-              depositInterest = input.monthlyDeposit * (pow(1 + (input.interestRate / 100 / 365), remainingMonths * 30) - 1);
-            }
-            break;
-        }
-        cumulativeInterest += depositInterest;
-      }
+      double monthlyInterestIncrement = month == 1 
+          ? monthInterest 
+          : monthInterest - (periodResults.isNotEmpty ? periodResults.last.cumulativeInterest : 0);
 
       periodResults.add(PeriodResult(
         period: month,
-        principal: totalPrincipal,
-        interest: month == 1 ? cumulativeInterest : cumulativeInterest - (periodResults.last.cumulativeInterest),
-        cumulativeInterest: cumulativeInterest,
-        totalAmount: totalPrincipal + cumulativeInterest,
+        principal: monthPrincipal,
+        interest: monthlyInterestIncrement,
+        cumulativeInterest: monthInterest,
+        totalAmount: monthPrincipal + monthInterest,
       ));
     }
 
-    // Calculate final total interest
-    totalInterest = 0;
-    for (int depositMonth = 1; depositMonth <= input.periodMonths; depositMonth++) {
-      int remainingMonths = input.periodMonths - depositMonth + 1;
-      double depositInterest = 0;
-      
-      switch (input.interestType) {
-        case InterestType.simple:
-          depositInterest = input.monthlyDeposit * (input.interestRate / 100) * (remainingMonths / 12);
-          break;
-        case InterestType.compoundMonthly:
-          if (remainingMonths > 0) {
-            depositInterest = input.monthlyDeposit * (pow(1 + (input.interestRate / 100 / 12), remainingMonths) - 1);
-          }
-          break;
-        case InterestType.compoundDaily:
-          if (remainingMonths > 0) {
-            depositInterest = input.monthlyDeposit * (pow(1 + (input.interestRate / 100 / 365), remainingMonths * 30) - 1);
-          }
-          break;
-      }
-      totalInterest += depositInterest;
-    }
+    // Final total interest is the last month's cumulative interest
+    totalInterest = periodResults.isNotEmpty ? periodResults.last.cumulativeInterest : 0;
 
     double taxRate = _getTaxRate(input.taxType, input.customTaxRate);
     double taxAmount = totalInterest * taxRate;
