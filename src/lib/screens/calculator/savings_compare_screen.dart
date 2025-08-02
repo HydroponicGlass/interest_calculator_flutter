@@ -4,6 +4,7 @@ import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
+import '../../services/calculation_history_service.dart';
 import '../../utils/currency_formatter.dart';
 
 class SavingsCompareScreen extends StatefulWidget {
@@ -36,6 +37,12 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
   bool _showResult = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadLastInput();
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _principalAController.dispose();
@@ -45,6 +52,41 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
     _interestRateBController.dispose();
     _periodBController.dispose();
     super.dispose();
+  }
+
+  void _loadLastInput() async {
+    final lastInput = await CalculationHistoryService.getLastSavingsCompareInput();
+    if (lastInput != null && mounted) {
+      setState(() {
+        // Product A
+        if (lastInput['principalA'] != null && lastInput['principalA'] > 0) {
+          _principalAController.text = CurrencyFormatter.formatWonInput(lastInput['principalA']);
+        }
+        if (lastInput['interestRateA'] != null && lastInput['interestRateA'] > 0) {
+          _interestRateAController.text = lastInput['interestRateA'].toString();
+        }
+        if (lastInput['periodA'] != null && lastInput['periodA'] > 0) {
+          _periodAController.text = lastInput['periodA'].toString();
+        }
+        if (lastInput['interestTypeA'] != null) {
+          _interestTypeA = InterestType.values[lastInput['interestTypeA']];
+        }
+
+        // Product B
+        if (lastInput['principalB'] != null && lastInput['principalB'] > 0) {
+          _principalBController.text = CurrencyFormatter.formatWonInput(lastInput['principalB']);
+        }
+        if (lastInput['interestRateB'] != null && lastInput['interestRateB'] > 0) {
+          _interestRateBController.text = lastInput['interestRateB'].toString();
+        }
+        if (lastInput['periodB'] != null && lastInput['periodB'] > 0) {
+          _periodBController.text = lastInput['periodB'].toString();
+        }
+        if (lastInput['interestTypeB'] != null) {
+          _interestTypeB = InterestType.values[lastInput['interestTypeB']];
+        }
+      });
+    }
   }
 
   void _scrollToFirstError() {
@@ -80,7 +122,7 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
     });
   }
 
-  void _calculate() {
+  void _calculate() async {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
       return;
@@ -113,6 +155,19 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
       taxType: TaxType.normal,
       monthlyDeposit: 0,
     );
+
+    // Save the inputs for next time
+    final compareData = {
+      'principalA': principalA,
+      'interestRateA': interestRateA,
+      'periodA': periodA,
+      'interestTypeA': _interestTypeA.index,
+      'principalB': principalB,
+      'interestRateB': interestRateB,
+      'periodB': periodB,
+      'interestTypeB': _interestTypeB.index,
+    };
+    await CalculationHistoryService.saveLastSavingsCompareInput(compareData);
 
     setState(() {
       _resultA = InterestCalculator.calculateInterest(inputA);

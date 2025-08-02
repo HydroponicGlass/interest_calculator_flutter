@@ -4,6 +4,7 @@ import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
+import '../../services/calculation_history_service.dart';
 import '../../utils/currency_formatter.dart';
 
 class CheckingSavingsCompareScreen extends StatefulWidget {
@@ -29,12 +30,38 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
   bool _showResult = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadLastInput();
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _amountController.dispose();
     _interestRateController.dispose();
     _periodController.dispose();
     super.dispose();
+  }
+
+  void _loadLastInput() async {
+    final lastInput = await CalculationHistoryService.getLastCheckingSavingsCompareInput();
+    if (lastInput != null && mounted) {
+      setState(() {
+        if (lastInput['amount'] != null && lastInput['amount'] > 0) {
+          _amountController.text = CurrencyFormatter.formatWonInput(lastInput['amount']);
+        }
+        if (lastInput['interestRate'] != null && lastInput['interestRate'] > 0) {
+          _interestRateController.text = lastInput['interestRate'].toString();
+        }
+        if (lastInput['period'] != null && lastInput['period'] > 0) {
+          _periodController.text = lastInput['period'].toString();
+        }
+        if (lastInput['interestType'] != null) {
+          _interestType = InterestType.values[lastInput['interestType']];
+        }
+      });
+    }
   }
 
   void _scrollToFirstError() {
@@ -70,7 +97,7 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
     });
   }
 
-  void _calculate() {
+  void _calculate() async {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
       return;
@@ -101,6 +128,15 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
       taxType: TaxType.normal,
       monthlyDeposit: 0,
     );
+
+    // Save the inputs for next time
+    final inputData = {
+      'amount': amount,
+      'interestRate': interestRate,
+      'period': period,
+      'interestType': _interestType.index,
+    };
+    await CalculationHistoryService.saveLastCheckingSavingsCompareInput(inputData);
 
     setState(() {
       _checkingResult = InterestCalculator.calculateInterest(checkingInput);

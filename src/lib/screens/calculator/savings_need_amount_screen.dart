@@ -4,6 +4,7 @@ import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
+import '../../services/calculation_history_service.dart';
 import '../../utils/currency_formatter.dart';
 
 class SavingsNeedAmountScreen extends StatefulWidget {
@@ -26,12 +27,38 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
   bool _showResult = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadLastInput();
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _targetAmountController.dispose();
     _periodController.dispose();
     _interestRateController.dispose();
     super.dispose();
+  }
+
+  void _loadLastInput() async {
+    final lastInput = await CalculationHistoryService.getLastSavingsNeedAmountInput();
+    if (lastInput != null && mounted) {
+      setState(() {
+        if (lastInput['targetAmount'] != null && lastInput['targetAmount'] > 0) {
+          _targetAmountController.text = CurrencyFormatter.formatWonInput(lastInput['targetAmount']);
+        }
+        if (lastInput['period'] != null && lastInput['period'] > 0) {
+          _periodController.text = lastInput['period'].toString();
+        }
+        if (lastInput['interestRate'] != null && lastInput['interestRate'] > 0) {
+          _interestRateController.text = lastInput['interestRate'].toString();
+        }
+        if (lastInput['interestType'] != null) {
+          _interestType = InterestType.values[lastInput['interestType']];
+        }
+      });
+    }
   }
 
   void _scrollToFirstError() {
@@ -67,7 +94,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
     });
   }
 
-  void _calculate() {
+  void _calculate() async {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
       return;
@@ -84,6 +111,15 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
       interestType: _interestType,
       accountType: AccountType.savings,
     );
+
+    // Save the inputs for next time
+    final inputData = {
+      'targetAmount': targetAmount,
+      'period': period,
+      'interestRate': interestRate,
+      'interestType': _interestType.index,
+    };
+    await CalculationHistoryService.saveLastSavingsNeedAmountInput(inputData);
 
     setState(() {
       _resultAmount = requiredAmount;

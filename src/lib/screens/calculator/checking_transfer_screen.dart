@@ -4,6 +4,7 @@ import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
+import '../../services/calculation_history_service.dart';
 import '../../utils/currency_formatter.dart';
 
 class CheckingTransferScreen extends StatefulWidget {
@@ -32,6 +33,12 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
   bool _showResult = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadLastInput();
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _currentBalanceController.dispose();
@@ -41,6 +48,35 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
     _transferFeeController.dispose();
     _monthlyDepositController.dispose();
     super.dispose();
+  }
+
+  void _loadLastInput() async {
+    final lastInput = await CalculationHistoryService.getLastCheckingTransferInput();
+    if (lastInput != null && mounted) {
+      setState(() {
+        if (lastInput['currentBalance'] != null && lastInput['currentBalance'] > 0) {
+          _currentBalanceController.text = CurrencyFormatter.formatWonInput(lastInput['currentBalance']);
+        }
+        if (lastInput['remainingPeriod'] != null && lastInput['remainingPeriod'] > 0) {
+          _remainingPeriodController.text = lastInput['remainingPeriod'].toString();
+        }
+        if (lastInput['currentRate'] != null && lastInput['currentRate'] > 0) {
+          _currentRateController.text = lastInput['currentRate'].toString();
+        }
+        if (lastInput['newRate'] != null && lastInput['newRate'] > 0) {
+          _newRateController.text = lastInput['newRate'].toString();
+        }
+        if (lastInput['transferFee'] != null && lastInput['transferFee'] > 0) {
+          _transferFeeController.text = CurrencyFormatter.formatWonInput(lastInput['transferFee']);
+        }
+        if (lastInput['monthlyDeposit'] != null && lastInput['monthlyDeposit'] > 0) {
+          _monthlyDepositController.text = CurrencyFormatter.formatWonInput(lastInput['monthlyDeposit']);
+        }
+        if (lastInput['interestType'] != null) {
+          _interestType = InterestType.values[lastInput['interestType']];
+        }
+      });
+    }
   }
 
   void _scrollToFirstError() {
@@ -76,7 +112,7 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
     });
   }
 
-  void _calculate() {
+  void _calculate() async {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
       return;
@@ -110,6 +146,18 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
       taxType: TaxType.normal,
       monthlyDeposit: monthlyDeposit,
     );
+
+    // Save the inputs for next time
+    final inputData = {
+      'currentBalance': currentBalance,
+      'remainingPeriod': remainingPeriod,
+      'currentRate': currentRate,
+      'newRate': newRate,
+      'transferFee': transferFee,
+      'monthlyDeposit': monthlyDeposit,
+      'interestType': _interestType.index,
+    };
+    await CalculationHistoryService.saveLastCheckingTransferInput(inputData);
 
     setState(() {
       _keepCurrentResult = InterestCalculator.calculateInterest(keepCurrentInput);

@@ -9,6 +9,11 @@ class CurrencyFormatter {
     return '${_wonFormatter.format(amount)}원';
   }
 
+  static String formatWonInput(double amount) {
+    if (amount == 0) return '';
+    return _wonFormatter.format(amount);
+  }
+
   static String formatPercent(double percent) {
     // Round to 2 decimal places to avoid floating point precision issues
     double roundedPercent = double.parse(percent.toStringAsFixed(2));

@@ -4,6 +4,7 @@ import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
+import '../../services/calculation_history_service.dart';
 import '../../utils/currency_formatter.dart';
 
 class CheckingNeedPeriodScreen extends StatefulWidget {
@@ -26,12 +27,38 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
   bool _showResult = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadLastInput();
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _targetAmountController.dispose();
     _monthlyDepositController.dispose();
     _interestRateController.dispose();
     super.dispose();
+  }
+
+  void _loadLastInput() async {
+    final lastInput = await CalculationHistoryService.getLastCheckingNeedPeriodInput();
+    if (lastInput != null && mounted) {
+      setState(() {
+        if (lastInput['targetAmount'] != null && lastInput['targetAmount'] > 0) {
+          _targetAmountController.text = CurrencyFormatter.formatWonInput(lastInput['targetAmount']);
+        }
+        if (lastInput['monthlyDeposit'] != null && lastInput['monthlyDeposit'] > 0) {
+          _monthlyDepositController.text = CurrencyFormatter.formatWonInput(lastInput['monthlyDeposit']);
+        }
+        if (lastInput['interestRate'] != null && lastInput['interestRate'] > 0) {
+          _interestRateController.text = lastInput['interestRate'].toString();
+        }
+        if (lastInput['interestType'] != null) {
+          _interestType = InterestType.values[lastInput['interestType']];
+        }
+      });
+    }
   }
 
   void _scrollToFirstError() {
@@ -67,7 +94,7 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
     });
   }
 
-  void _calculate() {
+  void _calculate() async {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
       return;
@@ -84,6 +111,15 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
       interestType: _interestType,
       accountType: AccountType.checking,
     );
+
+    // Save the inputs for next time
+    final inputData = {
+      'targetAmount': targetAmount,
+      'monthlyDeposit': monthlyDeposit,
+      'interestRate': interestRate,
+      'interestType': _interestType.index,
+    };
+    await CalculationHistoryService.saveLastCheckingNeedPeriodInput(inputData);
 
     setState(() {
       _resultPeriod = period;

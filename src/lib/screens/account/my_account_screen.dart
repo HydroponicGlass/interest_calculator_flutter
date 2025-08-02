@@ -8,6 +8,7 @@ import '../../models/calculation_models.dart';
 import '../../utils/currency_formatter.dart';
 import 'add_account_screen.dart';
 import 'account_detail_screen.dart';
+import 'edit_account_screen.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -298,11 +299,23 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
               ),
               PopupMenuButton<String>(
                 onSelected: (value) {
-                  if (value == 'delete') {
+                  if (value == 'edit') {
+                    _navigateToEditAccount(account);
+                  } else if (value == 'delete') {
                     _showDeleteDialog(account, provider);
                   }
                 },
                 itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, color: AppTheme.primaryColor),
+                        SizedBox(width: 8),
+                        Text('수정'),
+                      ],
+                    ),
+                  ),
                   const PopupMenuItem(
                     value: 'delete',
                     child: Row(
@@ -395,6 +408,18 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         ],
       ),
     );
+  }
+
+  void _navigateToEditAccount(MyAccount account) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditAccountScreen(account: account),
+      ),
+    ).then((_) {
+      // Refresh the account list after returning from edit screen
+      context.read<AccountProvider>().loadAccounts();
+    });
   }
 
   void _showDeleteDialog(MyAccount account, AccountProvider provider) {

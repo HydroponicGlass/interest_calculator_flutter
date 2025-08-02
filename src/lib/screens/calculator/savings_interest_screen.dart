@@ -5,6 +5,7 @@ import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
+import '../../services/calculation_history_service.dart';
 import '../../utils/currency_formatter.dart';
 
 class SavingsInterestScreen extends StatefulWidget {
@@ -29,6 +30,12 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
   bool _showResult = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadLastInput();
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     _principalController.dispose();
@@ -36,6 +43,28 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
     _periodController.dispose();
     _customTaxRateController.dispose();
     super.dispose();
+  }
+
+  void _loadLastInput() async {
+    final lastInput = await CalculationHistoryService.getLastSavingsInput();
+    if (lastInput != null && mounted) {
+      setState(() {
+        if (lastInput['principal'] > 0) {
+          _principalController.text = CurrencyFormatter.formatWonInput(lastInput['principal']);
+        }
+        if (lastInput['interestRate'] > 0) {
+          _interestRateController.text = lastInput['interestRate'].toString();
+        }
+        if (lastInput['periodMonths'] > 0) {
+          _periodController.text = lastInput['periodMonths'].toString();
+        }
+        if (lastInput['customTaxRate'] > 0) {
+          _customTaxRateController.text = lastInput['customTaxRate'].toString();
+        }
+        _interestType = lastInput['interestType'];
+        _taxType = lastInput['taxType'];
+      });
+    }
   }
 
   void _scrollToFirstError() {
@@ -71,7 +100,7 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
     });
   }
 
-  void _calculate() {
+  void _calculate() async {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
       return;
@@ -94,6 +123,9 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
       customTaxRate: customTaxRate,
       monthlyDeposit: 0,
     );
+
+    // Save the input for next time
+    await CalculationHistoryService.saveLastSavingsInput(input);
 
     setState(() {
       _result = InterestCalculator.calculateInterest(input);
