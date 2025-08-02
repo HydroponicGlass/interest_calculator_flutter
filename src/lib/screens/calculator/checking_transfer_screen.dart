@@ -45,6 +45,7 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
 
   void _scrollToFirstError() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final formContext = _formKey.currentContext;
       if (formContext != null) {
         final formRenderBox = formContext.findRenderObject() as RenderBox?;
@@ -118,7 +119,7 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
 
     // Scroll to results after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_resultSectionKey.currentContext != null) {
+      if (mounted && _resultSectionKey.currentContext != null) {
         Scrollable.ensureVisible(
           _resultSectionKey.currentContext!,
           duration: const Duration(milliseconds: 500),

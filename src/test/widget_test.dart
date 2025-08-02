@@ -15,6 +15,9 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const InterestCalculatorApp());
 
+    // Wait for any pending frame callbacks to complete
+    await tester.pumpAndSettle();
+
     // Verify that the app starts with the main screen
     expect(find.text('이자계산'), findsOneWidget);
     expect(find.text('내 계좌'), findsOneWidget);

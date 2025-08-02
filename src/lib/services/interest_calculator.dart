@@ -19,42 +19,63 @@ class InterestCalculator {
     double totalInterest = 0;
     double interestRateDecimal = input.interestRate / 100;
 
-    // Generate period-by-period results exactly matching original Kotlin SetCheckingInterest logic
-    for (int month = 1; month <= input.periodMonths; month++) {
-      double monthPrincipal = input.monthlyDeposit * month;
-      double monthInterest = 0;
+    // Calculate total interest using progressive monthly deposit logic
+    // Each monthly deposit earns interest for the remaining months
+    for (int depositMonth = 1; depositMonth <= input.periodMonths; depositMonth++) {
+      int remainingMonths = input.periodMonths - depositMonth + 1;
       
-      // Calculate interest exactly as original Kotlin SetCheckingInterest does
       switch (input.interestType) {
         case InterestType.simple:
-          // Original: amount * interest_rate * month / interest_type.value (where SIMPLE.value = 12)
-          monthInterest = input.monthlyDeposit * interestRateDecimal * month / 12;
+          totalInterest += input.monthlyDeposit * interestRateDecimal * (remainingMonths / 12);
           break;
         case InterestType.compoundMonthly:
-          // Original: amount * ((1+interest_rate/interest_type.value)^month - 1) (where COMPOUND_MONTHLY.value = 12)
-          monthInterest = input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, month) - 1);
+          totalInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, remainingMonths) - 1);
           break;
         case InterestType.compoundDaily:
-          // Original: amount * ((1+interest_rate/interest_type.value)^(month*30) - 1) (where COMPOUND_DAILY.value = 365)
-          monthInterest = input.monthlyDeposit * (pow(1 + interestRateDecimal / 365, month * 30) - 1);
+          totalInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 365, remainingMonths * 30) - 1);
           break;
+      }
+    }
+
+    // Generate period-by-period results showing progressive accumulation
+    double accumulatedPrincipal = 0;
+    double accumulatedInterest = 0;
+
+    for (int month = 1; month <= input.periodMonths; month++) {
+      accumulatedPrincipal += input.monthlyDeposit;
+      
+      // Calculate cumulative interest up to this month
+      double monthCumulativeInterest = 0;
+      for (int depositMonth = 1; depositMonth <= month; depositMonth++) {
+        int remainingMonths = input.periodMonths - depositMonth + 1;
+        
+        switch (input.interestType) {
+          case InterestType.simple:
+            monthCumulativeInterest += input.monthlyDeposit * interestRateDecimal * (remainingMonths / 12);
+            break;
+          case InterestType.compoundMonthly:
+            monthCumulativeInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, remainingMonths) - 1);
+            break;
+          case InterestType.compoundDaily:
+            monthCumulativeInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 365, remainingMonths * 30) - 1);
+            break;
+        }
       }
 
       double monthlyInterestIncrement = month == 1 
-          ? monthInterest 
-          : monthInterest - (periodResults.isNotEmpty ? periodResults.last.cumulativeInterest : 0);
+          ? monthCumulativeInterest 
+          : monthCumulativeInterest - accumulatedInterest;
+      
+      accumulatedInterest = monthCumulativeInterest;
 
       periodResults.add(PeriodResult(
         period: month,
-        principal: monthPrincipal,
+        principal: accumulatedPrincipal,
         interest: monthlyInterestIncrement,
-        cumulativeInterest: monthInterest,
-        totalAmount: monthPrincipal + monthInterest,
+        cumulativeInterest: accumulatedInterest,
+        totalAmount: accumulatedPrincipal + accumulatedInterest,
       ));
     }
-
-    // Final total interest is the last month's cumulative interest
-    totalInterest = periodResults.isNotEmpty ? periodResults.last.cumulativeInterest : 0;
 
     double taxRate = _getTaxRate(input.taxType, input.customTaxRate);
     double taxAmount = totalInterest * taxRate;
