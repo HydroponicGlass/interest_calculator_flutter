@@ -15,6 +15,8 @@ class CheckingTransferScreen extends StatefulWidget {
 
 class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _resultSectionKey = GlobalKey();
   
   final _currentBalanceController = TextEditingController();
   final _remainingPeriodController = TextEditingController();
@@ -31,6 +33,7 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _currentBalanceController.dispose();
     _remainingPeriodController.dispose();
     _currentRateController.dispose();
@@ -78,12 +81,15 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
       _showResult = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+    // Scroll to results after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_resultSectionKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _resultSectionKey.currentContext!,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -97,6 +103,7 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
       body: Container(
         decoration: AppTheme.gradientBackground,
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
@@ -143,8 +150,8 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      NumberInputField(
-                        label: '남은 기간 (월)',
+                      PeriodInputField(
+                        label: '남은 기간',
                         controller: _remainingPeriodController,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -269,7 +276,10 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
                 
                 if (_showResult && _keepCurrentResult != null && _transferResult != null) ...[
                   const SizedBox(height: 24),
-                  _buildTransferAnalysis(),
+                  Container(
+                    key: _resultSectionKey,
+                    child: _buildTransferAnalysis(),
+                  ),
                 ],
               ],
             ),

@@ -15,6 +15,8 @@ class CheckingSavingsCompareScreen extends StatefulWidget {
 
 class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _resultSectionKey = GlobalKey();
   
   final _amountController = TextEditingController();
   final _interestRateController = TextEditingController();
@@ -28,6 +30,7 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _amountController.dispose();
     _interestRateController.dispose();
     _periodController.dispose();
@@ -69,12 +72,15 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
       _showResult = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+    // Scroll to results after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_resultSectionKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _resultSectionKey.currentContext!,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -88,6 +94,7 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
       body: Container(
         decoration: AppTheme.gradientBackground,
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
@@ -171,14 +178,17 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
                         },
                       ),
                       const SizedBox(height: 20),
-                      NumberInputField(
-                        label: '기간 (월)',
+                      PeriodInputField(
+                        label: '기간',
                         controller: _periodController,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '기간을 입력해주세요';
                           }
                           return null;
+                        },
+                        onChanged: (value) {
+                          // Handle period change if needed
                         },
                       ),
                     ],
@@ -218,7 +228,10 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
                 
                 if (_showResult && _checkingResult != null && _savingsResult != null) ...[
                   const SizedBox(height: 24),
-                  _buildComparisonResults(),
+                  Container(
+                    key: _resultSectionKey,
+                    child: _buildComparisonResults(),
+                  ),
                 ],
               ],
             ),

@@ -16,6 +16,8 @@ class SavingsInterestScreen extends StatefulWidget {
 
 class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _resultSectionKey = GlobalKey();
   final _principalController = TextEditingController();
   final _interestRateController = TextEditingController();
   final _periodController = TextEditingController();
@@ -28,6 +30,7 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _principalController.dispose();
     _interestRateController.dispose();
     _periodController.dispose();
@@ -61,12 +64,15 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
       _showResult = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+    // Scroll to results after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_resultSectionKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _resultSectionKey.currentContext!,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -80,6 +86,7 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
       body: Container(
         decoration: AppTheme.gradientBackground,
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
@@ -199,7 +206,10 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
                 ),
                 if (_showResult && _result != null) ...[
                   const SizedBox(height: 24),
-                  _buildResultSection(),
+                  Container(
+                    key: _resultSectionKey,
+                    child: _buildResultSection(),
+                  ),
                 ],
               ],
             ),

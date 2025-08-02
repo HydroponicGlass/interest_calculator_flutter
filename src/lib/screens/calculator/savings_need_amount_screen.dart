@@ -15,6 +15,8 @@ class SavingsNeedAmountScreen extends StatefulWidget {
 
 class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _resultSectionKey = GlobalKey();
   final _targetAmountController = TextEditingController();
   final _periodController = TextEditingController();
   final _interestRateController = TextEditingController();
@@ -25,6 +27,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _targetAmountController.dispose();
     _periodController.dispose();
     _interestRateController.dispose();
@@ -51,12 +54,15 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
       _showResult = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+    // Scroll to results after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_resultSectionKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _resultSectionKey.currentContext!,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -70,6 +76,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
       body: Container(
         decoration: AppTheme.gradientBackground,
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
@@ -116,14 +123,17 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      NumberInputField(
-                        label: '예치 기간 (월)',
+                      PeriodInputField(
+                        label: '예치 기간',
                         controller: _periodController,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '예치 기간을 입력해주세요';
                           }
                           return null;
+                        },
+                        onChanged: (value) {
+                          // Handle period change if needed
                         },
                       ),
                       const SizedBox(height: 20),
@@ -173,7 +183,10 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
                 ),
                 if (_showResult && _resultAmount != null) ...[
                   const SizedBox(height: 24),
-                  _buildResultSection(),
+                  Container(
+                    key: _resultSectionKey,
+                    child: _buildResultSection(),
+                  ),
                 ],
               ],
             ),

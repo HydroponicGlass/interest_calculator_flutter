@@ -15,6 +15,8 @@ class CheckingNeedPeriodScreen extends StatefulWidget {
 
 class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _resultSectionKey = GlobalKey();
   final _targetAmountController = TextEditingController();
   final _monthlyDepositController = TextEditingController();
   final _interestRateController = TextEditingController();
@@ -25,6 +27,7 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _targetAmountController.dispose();
     _monthlyDepositController.dispose();
     _interestRateController.dispose();
@@ -51,12 +54,15 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
       _showResult = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+    // Scroll to results after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_resultSectionKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _resultSectionKey.currentContext!,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -70,6 +76,7 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
       body: Container(
         decoration: AppTheme.gradientBackground,
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
@@ -173,7 +180,10 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
                 ),
                 if (_showResult && _resultPeriod != null) ...[
                   const SizedBox(height: 24),
-                  _buildResultSection(),
+                  Container(
+                    key: _resultSectionKey,
+                    child: _buildResultSection(),
+                  ),
                 ],
               ],
             ),

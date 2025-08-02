@@ -134,10 +134,12 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
       children: amounts.map((amount) {
         return OutlinedButton(
           onPressed: widget.enabled ? () {
-            final value = (amount['value'] as int).toDouble();
-            widget.controller.text = CurrencyFormatter.formatWon(value).replaceAll('원', '');
+            final addValue = (amount['value'] as int).toDouble();
+            final currentValue = CurrencyFormatter.parseWon(widget.controller.text);
+            final newValue = currentValue + addValue;
+            widget.controller.text = CurrencyFormatter.formatWon(newValue).replaceAll('원', '');
             if (widget.onChanged != null) {
-              widget.onChanged!(value);
+              widget.onChanged!(newValue);
             }
           } : null,
           style: OutlinedButton.styleFrom(
@@ -221,9 +223,13 @@ class _PercentInputFieldState extends State<PercentInputField> {
       children: percents.map((percent) {
         return OutlinedButton(
           onPressed: widget.enabled ? () {
-            widget.controller.text = percent.toString();
+            final currentValue = CurrencyFormatter.parsePercent(widget.controller.text);
+            final newValue = currentValue + percent;
+            // Round to 2 decimal places to avoid floating point precision issues
+            final roundedValue = double.parse(newValue.toStringAsFixed(2));
+            widget.controller.text = roundedValue.toString();
             if (widget.onChanged != null) {
-              widget.onChanged!(percent);
+              widget.onChanged!(roundedValue);
             }
           } : null,
           style: OutlinedButton.styleFrom(
@@ -298,10 +304,10 @@ class _PeriodInputFieldState extends State<PeriodInputField> {
 
   Widget _buildQuickPeriodButtons() {
     final periods = [
+      {'label': '1개월', 'value': 1},
       {'label': '6개월', 'value': 6},
       {'label': '12개월', 'value': 12},
       {'label': '24개월', 'value': 24},
-      {'label': '36개월', 'value': 36},
     ];
 
     return Wrap(
@@ -310,10 +316,12 @@ class _PeriodInputFieldState extends State<PeriodInputField> {
       children: periods.map((period) {
         return OutlinedButton(
           onPressed: widget.enabled ? () {
-            final value = period['value'] as int;
-            widget.controller.text = value.toString();
+            final addValue = period['value'] as int;
+            final currentValue = int.tryParse(widget.controller.text) ?? 0;
+            final newValue = currentValue + addValue;
+            widget.controller.text = newValue.toString();
             if (widget.onChanged != null) {
-              widget.onChanged!(value);
+              widget.onChanged!(newValue);
             }
           } : null,
           style: OutlinedButton.styleFrom(

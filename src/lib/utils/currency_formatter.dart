@@ -10,11 +10,14 @@ class CurrencyFormatter {
   }
 
   static String formatPercent(double percent) {
+    // Round to 2 decimal places to avoid floating point precision issues
+    double roundedPercent = double.parse(percent.toStringAsFixed(2));
+    
     // Format without trailing zeros
-    if (percent == percent.round()) {
-      return '${percent.round()}%';
+    if (roundedPercent == roundedPercent.round()) {
+      return '${roundedPercent.round()}%';
     } else {
-      return '${_percentFormatter.format(percent)}%';
+      return '${_percentFormatter.format(roundedPercent)}%';
     }
   }
 

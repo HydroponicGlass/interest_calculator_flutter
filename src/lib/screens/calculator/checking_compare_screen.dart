@@ -15,6 +15,8 @@ class CheckingCompareScreen extends StatefulWidget {
 
 class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _resultSectionKey = GlobalKey();
   
   // Account A controllers
   final _monthlyDepositAController = TextEditingController();
@@ -35,6 +37,7 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _monthlyDepositAController.dispose();
     _interestRateAController.dispose();
     _periodAController.dispose();
@@ -81,12 +84,15 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
       _showResult = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+    // Scroll to results after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_resultSectionKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _resultSectionKey.currentContext!,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -100,6 +106,7 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
       body: Container(
         decoration: AppTheme.gradientBackground,
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
@@ -199,7 +206,10 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
                 
                 if (_showResult && _resultA != null && _resultB != null) ...[
                   const SizedBox(height: 24),
-                  _buildComparisonResults(),
+                  Container(
+                    key: _resultSectionKey,
+                    child: _buildComparisonResults(),
+                  ),
                 ],
               ],
             ),
@@ -265,14 +275,17 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
             },
           ),
           const SizedBox(height: 16),
-          NumberInputField(
-            label: '가입기간 (월)',
+          PeriodInputField(
+            label: '가입기간',
             controller: periodController,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '가입기간을 입력해주세요';
               }
               return null;
+            },
+            onChanged: (value) {
+              // Handle period change if needed
             },
           ),
           const SizedBox(height: 16),
