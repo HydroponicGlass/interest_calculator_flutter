@@ -66,8 +66,6 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('예금 필요금액'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,

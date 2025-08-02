@@ -67,8 +67,6 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('예금 필요기간'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,

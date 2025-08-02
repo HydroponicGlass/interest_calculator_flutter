@@ -84,8 +84,6 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('적금 vs 예금 비교'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,

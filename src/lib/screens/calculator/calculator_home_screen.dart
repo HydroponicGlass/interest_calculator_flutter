@@ -21,8 +21,6 @@ class CalculatorHomeScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('이자 계산기'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: SafeArea(
         child: Padding(

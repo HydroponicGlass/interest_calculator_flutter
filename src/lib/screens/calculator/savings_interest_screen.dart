@@ -76,8 +76,6 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('예금 이자계산'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,

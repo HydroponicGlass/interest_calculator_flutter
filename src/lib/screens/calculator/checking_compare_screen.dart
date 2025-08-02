@@ -96,8 +96,6 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('적금 상품 비교'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,

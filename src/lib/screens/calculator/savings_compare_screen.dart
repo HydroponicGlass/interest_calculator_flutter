@@ -96,8 +96,6 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('예금 상품 비교'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,

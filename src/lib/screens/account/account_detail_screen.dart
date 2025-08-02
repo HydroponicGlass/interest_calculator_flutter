@@ -20,8 +20,6 @@ class AccountDetailScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(account.name),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         actions: [
           IconButton(
             onPressed: () {

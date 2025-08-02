@@ -126,8 +126,6 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('계좌 수정'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,

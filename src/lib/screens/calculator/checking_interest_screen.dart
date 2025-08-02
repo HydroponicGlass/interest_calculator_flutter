@@ -77,8 +77,6 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('적금 이자계산'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,

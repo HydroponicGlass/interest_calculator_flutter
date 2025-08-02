@@ -31,8 +31,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('내 계좌'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         actions: [
           IconButton(
             onPressed: () {

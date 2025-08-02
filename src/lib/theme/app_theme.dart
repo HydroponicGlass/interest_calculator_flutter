@@ -9,7 +9,7 @@ class AppTheme {
   static const Color surfaceColor = Colors.white;
   static const Color cardColor = Colors.white;
   static const Color textPrimary = Color(0xFF1F2937);
-  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textSecondary = Color(0xFF4B5563);
   static const Color borderColor = Color(0xFFE5E7EB);
   static const Color successColor = Color(0xFF10B981);
   static const Color warningColor = Color(0xFFF59E0B);
@@ -163,13 +163,22 @@ class AppTheme {
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.white,
-        foregroundColor: textPrimary,
-        elevation: 0,
+        foregroundColor: const Color(0xFF1F2937),
+        elevation: 2,
         centerTitle: true,
+        surfaceTintColor: Colors.transparent,
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: textPrimary,
+          color: const Color(0xFF1F2937),
+        ),
+        iconTheme: const IconThemeData(
+          color: Color(0xFF1F2937),
+          size: 24,
+        ),
+        actionsIconTheme: const IconThemeData(
+          color: Color(0xFF1F2937),
+          size: 24,
         ),
       ),
     );

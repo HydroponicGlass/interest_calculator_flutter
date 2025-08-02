@@ -73,31 +73,31 @@ class _MainScreenState extends State<MainScreen> {
           currentIndex: _currentIndex,
           onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.white,
           elevation: 0,
-          selectedItemColor: AppTheme.primaryColor,
-          unselectedItemColor: AppTheme.textSecondary,
+          selectedItemColor: const Color(0xFF6366F1), // Explicit primary color
+          unselectedItemColor: const Color(0xFF6B7280), // Explicit gray color
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 12,
+            color: Color(0xFF6366F1),
           ),
           unselectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.w500,
             fontSize: 12,
+            color: Color(0xFF6B7280),
           ),
           items: [
             BottomNavigationBarItem(
               icon: Icon(
                 _currentIndex == 0 ? Icons.calculate : Icons.calculate_outlined,
-              ).animate(target: _currentIndex == 0 ? 1 : 0)
-                .scale(duration: 200.ms),
+              ),
               label: '이자계산',
             ),
             BottomNavigationBarItem(
               icon: Icon(
                 _currentIndex == 1 ? Icons.account_balance_wallet : Icons.account_balance_wallet_outlined,
-              ).animate(target: _currentIndex == 1 ? 1 : 0)
-                .scale(duration: 200.ms),
+              ),
               label: '내 계좌',
             ),
           ],

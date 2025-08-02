@@ -98,8 +98,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('계좌 추가'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,

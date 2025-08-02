@@ -93,8 +93,6 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('적금 이관 분석'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,
