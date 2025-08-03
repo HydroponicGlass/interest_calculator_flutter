@@ -229,7 +229,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               const SizedBox(height: 40),
               Text(
-                '이자 계산기에\n오신 것을 환영합니다!',
+                '올인원 이자 계산기에\n오신 것을 환영합니다!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28,

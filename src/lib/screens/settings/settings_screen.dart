@@ -107,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Footer
               Center(
                 child: Text(
-                  '이자 계산기 v1.0.0\\n똑똑한 금융 계산의 시작',
+                  '올인원 이자 계산기 v1.0.0\\n똑똑한 금융 계산의 시작',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),

@@ -140,7 +140,7 @@ class _SplashScreenState extends State<SplashScreen>
                           
                           // App title
                           const Text(
-                            '이자 계산기',
+                            '올인원 이자 계산기',
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,

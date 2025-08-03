@@ -20,7 +20,7 @@ class InterestCalculatorApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AccountProvider()),
       ],
       child: MaterialApp(
-        title: 'Interest Calculator',
+        title: '올인원 이자 계산기',
         theme: AppTheme.lightTheme,
         debugShowCheckedModeBanner: false,
         home: FutureBuilder<bool>(

@@ -20,7 +20,7 @@ class CalculatorHomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('이자 계산기'),
+        title: const Text('올인원 이자 계산기'),
       ),
       body: SafeArea(
         child: Padding(

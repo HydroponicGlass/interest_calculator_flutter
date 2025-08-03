@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:interestcalculator/main.dart';
 
 void main() {
-  testWidgets('Interest Calculator app smoke test', (WidgetTester tester) async {
+  testWidgets('올인원 이자 계산기 app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const InterestCalculatorApp());
 
