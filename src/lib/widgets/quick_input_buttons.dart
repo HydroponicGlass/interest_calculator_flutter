@@ -94,8 +94,15 @@ class QuickInputButtons extends StatelessWidget {
     double currentValue = currentText.isEmpty ? 0 : double.tryParse(currentText) ?? 0;
     double newValue = currentValue + value.value;
     
-    // Format with commas
-    String formattedValue = _formatNumberWithCommas(newValue.toInt());
+    // Format based on field type
+    String formattedValue;
+    if (labelText.contains('이자율') || labelText.contains('수익률')) {
+      // For percentage fields, keep decimal places
+      formattedValue = _formatDecimalNumber(newValue);
+    } else {
+      // For amount/period fields, use integer with commas
+      formattedValue = _formatNumberWithCommas(newValue.toInt());
+    }
     controller.text = formattedValue;
   }
 
@@ -104,6 +111,19 @@ class QuickInputButtons extends StatelessWidget {
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]},',
     );
+  }
+
+  String _formatDecimalNumber(double number) {
+    // Handle floating point precision issues by rounding to reasonable decimal places
+    double roundedNumber = double.parse(number.toStringAsFixed(2));
+    
+    // Convert to string and remove unnecessary trailing zeros
+    String result = roundedNumber.toString();
+    if (result.contains('.')) {
+      result = result.replaceAll(RegExp(r'0*$'), '');
+      result = result.replaceAll(RegExp(r'\.$'), '');
+    }
+    return result;
   }
 
   Widget _buildCurrencyField() {
