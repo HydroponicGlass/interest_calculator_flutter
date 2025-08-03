@@ -408,9 +408,6 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
           case InterestType.compoundMonthly:
             title = '월복리';
             break;
-          case InterestType.compoundDaily:
-            title = '일복리';
-            break;
         }
 
         return RadioListTile<InterestType>(

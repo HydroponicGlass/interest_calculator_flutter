@@ -52,13 +52,13 @@ void main() {
         expect(result.totalInterest, lessThan(50000)); // Should be reasonable
       });
 
-      test('should calculate daily compound interest for checking account correctly', () {
-        // Test case: 200,000원 월납입, 4% 연이율, 6개월, 일복리
+      test('should calculate monthly compound interest for checking account correctly', () {
+        // Test case: 200,000원 월납입, 4% 연이율, 6개월, 월복리
         final input = InterestCalculationInput(
           principal: 0,
           interestRate: 4.0,
           periodMonths: 6,
-          interestType: InterestType.compoundDaily,
+          interestType: InterestType.compoundMonthly,
           accountType: AccountType.checking,
           taxType: TaxType.noTax,
           monthlyDeposit: 200000,
@@ -155,13 +155,13 @@ void main() {
         expect(result.totalInterest, closeTo(expectedInterest, 100));
       });
 
-      test('should calculate daily compound interest for savings account correctly', () {
-        // Test case: 2,000,000원 원금, 4% 연이율, 36개월, 일복리
+      test('should calculate monthly compound interest for savings account correctly', () {
+        // Test case: 2,000,000원 원금, 4% 연이율, 36개월, 월복리
         final input = InterestCalculationInput(
           principal: 2000000,
           interestRate: 4.0,
           periodMonths: 36,
-          interestType: InterestType.compoundDaily,
+          interestType: InterestType.compoundMonthly,
           accountType: AccountType.savings,
           taxType: TaxType.noTax,
           monthlyDeposit: 0,
@@ -169,8 +169,8 @@ void main() {
 
         final result = InterestCalculator.calculateInterest(input);
         
-        // Expected calculation using daily compound formula
-        final expectedAmount = 2000000 * pow(1 + (4.0 / 100 / 365), 36 * 30);
+        // Expected calculation using monthly compound formula
+        final expectedAmount = 2000000 * pow(1 + (4.0 / 100 / 12), 36);
         final expectedInterest = expectedAmount - 2000000;
         
         expect(result.totalAmount - result.totalInterest, equals(2000000));

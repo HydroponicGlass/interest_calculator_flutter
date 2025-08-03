@@ -283,10 +283,6 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
             title = '월복리';
             subtitle = '매월 이자가 원금에 추가';
             break;
-          case InterestType.compoundDaily:
-            title = '일복리';
-            subtitle = '매일 이자가 원금에 추가';
-            break;
         }
 
         return RadioListTile<InterestType>(

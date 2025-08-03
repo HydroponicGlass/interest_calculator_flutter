@@ -84,12 +84,12 @@ void main() {
         expect(result.taxAmount, closeTo(expectedInterest * 0.154, 100));
       });
 
-      test('하나은행 정기예금 시뮬레이션 - 5천만원, 2.1% 연이율, 6개월, 일복리', () {
+      test('하나은행 정기예금 시뮬레이션 - 5천만원, 2.1% 연이율, 6개월, 월복리', () {
         final input = InterestCalculationInput(
           principal: 50000000,
           interestRate: 2.1,
           periodMonths: 6,
-          interestType: InterestType.compoundDaily,
+          interestType: InterestType.compoundMonthly,
           accountType: AccountType.savings,
           taxType: TaxType.normal,
           monthlyDeposit: 0,
@@ -97,9 +97,9 @@ void main() {
 
         final result = InterestCalculator.calculateInterest(input);
         
-        // Expected calculation for daily compound:
-        // Final amount = 50,000,000 * (1 + 2.1%/365)^(6*30)
-        final expectedAmount = 50000000 * pow(1 + (2.1 / 100 / 365), 6 * 30);
+        // Expected calculation for monthly compound:
+        // Final amount = 50,000,000 * (1 + 2.1%/12)^6
+        final expectedAmount = 50000000 * pow(1 + (2.1 / 100 / 12), 6);
         final expectedInterest = expectedAmount - 50000000;
         
         expect(result.totalAmount - result.totalInterest, equals(50000000));
@@ -351,7 +351,7 @@ void main() {
     });
 
     group('Compound Interest Variations', () {
-      test('단리 vs 월복리 vs 일복리 비교 - 동일 조건', () {
+      test('단리 vs 월복리 비교 - 동일 조건', () {
         final baseParams = {
           'principal': 10000000.0,
           'interestRate': 3.5,
@@ -384,22 +384,8 @@ void main() {
           ),
         );
 
-        final dailyCompoundResult = InterestCalculator.calculateInterest(
-          InterestCalculationInput(
-            principal: baseParams['principal'] as double,
-            interestRate: baseParams['interestRate'] as double,
-            periodMonths: baseParams['periodMonths'] as int,
-            interestType: InterestType.compoundDaily,
-            accountType: baseParams['accountType'] as AccountType,
-            taxType: baseParams['taxType'] as TaxType,
-            monthlyDeposit: 0,
-          ),
-        );
-
-        // Interest should be: Simple < Daily Compound < Monthly Compound
-        // Daily compound is actually lower than monthly due to different compounding frequency
-        expect(simpleResult.totalInterest, lessThan(dailyCompoundResult.totalInterest));
-        expect(dailyCompoundResult.totalInterest, lessThan(monthlyCompoundResult.totalInterest));
+        // Interest should be: Simple < Monthly Compound
+        expect(simpleResult.totalInterest, lessThan(monthlyCompoundResult.totalInterest));
         
         // Verify specific calculations
         // Simple: 10,000,000 * 3.5% * 2 = 700,000
@@ -408,9 +394,6 @@ void main() {
         // Monthly compound: 10,000,000 * (1 + 3.5%/12)^24 - 10,000,000
         final expectedMonthlyCompound = 10000000 * pow(1 + (3.5 / 100 / 12), 24) - 10000000;
         expect(monthlyCompoundResult.totalInterest, closeTo(expectedMonthlyCompound, 100));
-        
-        // Daily compound should be slightly lower than monthly compound for this frequency
-        expect(dailyCompoundResult.totalInterest, lessThan(expectedMonthlyCompound));
       });
     });
 

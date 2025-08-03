@@ -7,6 +7,11 @@ import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
 import '../../services/calculation_history_service.dart';
 import '../../utils/currency_formatter.dart';
+import '../../models/additional_info_models.dart';
+import '../../services/additional_info_service.dart';
+import '../../widgets/additional_info_card.dart';
+import '../../widgets/quick_input_buttons.dart';
+import '../../widgets/input_parameter_card.dart';
 
 class CheckingInterestScreen extends StatefulWidget {
   const CheckingInterestScreen({super.key});
@@ -27,6 +32,7 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
   InterestType _interestType = InterestType.compoundMonthly;
   TaxType _taxType = TaxType.normal;
   InterestCalculationResult? _result;
+  AdditionalInfoData? _additionalInfo;
   bool _showResult = false;
 
   @override
@@ -77,7 +83,6 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
           // Find the first TextFormField with an error
           void findFirstErrorField(Element element) {
             if (element.widget is TextFormField) {
-              final textFormField = element.widget as TextFormField;
               final fieldState = element as StatefulElement;
               if (fieldState.state is FormFieldState) {
                 final formFieldState = fieldState.state as FormFieldState;
@@ -127,8 +132,12 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
     // Save the input for next time
     await CalculationHistoryService.saveLastCheckingInput(input);
 
+    final result = InterestCalculator.calculateInterest(input);
+    final additionalInfo = AdditionalInfoService.generateAdditionalInfo(input, result);
+
     setState(() {
-      _result = InterestCalculator.calculateInterest(input);
+      _result = result;
+      _additionalInfo = additionalInfo;
       _showResult = true;
     });
 
@@ -190,9 +199,10 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      CurrencyInputField(
-                        label: '월 납입금액',
+                      QuickInputButtons(
                         controller: _monthlyDepositController,
+                        labelText: '월 납입금액',
+                        values: QuickInputConstants.amountValues,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '월 납입금액을 입력해주세요';
@@ -201,9 +211,10 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      PercentInputField(
-                        label: '연 이자율',
+                      QuickInputButtons(
                         controller: _interestRateController,
+                        labelText: '연 이자율',
+                        values: QuickInputConstants.interestRateValues,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '연 이자율을 입력해주세요';
@@ -212,9 +223,10 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      PeriodInputField(
-                        label: '가입기간',
+                      QuickInputButtons(
                         controller: _periodController,
+                        labelText: '가입기간',
+                        values: QuickInputConstants.periodValues,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '가입기간을 입력해주세요';
@@ -301,10 +313,6 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
             title = '월복리';
             subtitle = '매월 이자가 원금에 추가';
             break;
-          case InterestType.compoundDaily:
-            title = '일복리';
-            subtitle = '매일 이자가 원금에 추가';
-            break;
         }
 
         return RadioListTile<InterestType>(
@@ -358,13 +366,32 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
   Widget _buildResultSection() {
     if (_result == null) return const SizedBox.shrink();
 
+    final input = InterestCalculationInput(
+      principal: 0, // Not applicable for checking accounts
+      interestRate: CurrencyFormatter.parsePercent(_interestRateController.text),
+      periodMonths: int.tryParse(_periodController.text) ?? 0,
+      interestType: _interestType,
+      accountType: AccountType.checking,
+      taxType: _taxType,
+      customTaxRate: _taxType == TaxType.custom 
+          ? CurrencyFormatter.parsePercent(_customTaxRateController.text)
+          : 0.0,
+      monthlyDeposit: CurrencyFormatter.parseWon(_monthlyDepositController.text),
+    );
+
     return Column(
       children: [
+        InputParameterCard(input: input),
+        const SizedBox(height: 16),
         _buildSummaryCard(),
         const SizedBox(height: 16),
         _buildPieChart(),
         const SizedBox(height: 16),
         _buildDetailsList(),
+        if (_additionalInfo != null) ...[
+          const SizedBox(height: 16),
+          AdditionalInfoCard(additionalInfo: _additionalInfo!),
+        ],
       ],
     );
   }
@@ -383,9 +410,11 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
           const SizedBox(height: 20),
           _buildResultRow('총 납입원금', _result!.totalAmount - _result!.totalInterest),
           const SizedBox(height: 8),
-          _buildResultRow('총 이자수익', _result!.totalInterest),
+          _buildResultRow('세전 이자수익', _result!.totalInterest),
           const SizedBox(height: 8),
           _buildResultRow('세금', _result!.taxAmount),
+          const SizedBox(height: 8),
+          _buildResultRow('세후 이자수익', _result!.totalInterest - _result!.taxAmount),
           const Divider(color: Colors.white30, height: 24),
           _buildResultRow(
             '최종 수령액',
@@ -423,13 +452,14 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
 
   Widget _buildPieChart() {
     final principal = _result!.totalAmount - _result!.totalInterest;
-    final interest = _result!.totalInterest;
+    final afterTaxInterest = _result!.totalInterest - _result!.taxAmount;
+    final finalTotal = principal + afterTaxInterest;
     
     return CustomCard(
       child: Column(
         children: [
           Text(
-            '원금 vs 이자 비율',
+            '원금 vs 세후이자 비율',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -442,7 +472,7 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
                 sections: [
                   PieChartSectionData(
                     value: principal,
-                    title: '${(principal / _result!.totalAmount * 100).toStringAsFixed(1)}%',
+                    title: '${(principal / finalTotal * 100).toStringAsFixed(1)}%',
                     color: AppTheme.primaryColor,
                     radius: 80,
                     titleStyle: const TextStyle(
@@ -452,8 +482,8 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
                     ),
                   ),
                   PieChartSectionData(
-                    value: interest,
-                    title: '${(interest / _result!.totalAmount * 100).toStringAsFixed(1)}%',
+                    value: afterTaxInterest,
+                    title: '${(afterTaxInterest / finalTotal * 100).toStringAsFixed(1)}%',
                     color: AppTheme.secondaryColor,
                     radius: 80,
                     titleStyle: const TextStyle(
@@ -474,7 +504,7 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
             children: [
               _buildLegendItem('원금', AppTheme.primaryColor, principal),
               const SizedBox(width: 24),
-              _buildLegendItem('이자', AppTheme.secondaryColor, interest),
+              _buildLegendItem('세후이자', AppTheme.secondaryColor, afterTaxInterest),
             ],
           ),
         ],
@@ -539,11 +569,11 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('원금: ${CurrencyFormatter.formatWon(period.principal)}'),
-                      Text('이자: ${CurrencyFormatter.formatWon(period.cumulativeInterest)}'),
+                      Text('세후 누적이자: ${CurrencyFormatter.formatWon(period.afterTaxCumulativeInterest)}'),
                     ],
                   ),
                   trailing: Text(
-                    CurrencyFormatter.formatWon(period.totalAmount),
+                    CurrencyFormatter.formatWon(period.afterTaxTotalAmount),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),

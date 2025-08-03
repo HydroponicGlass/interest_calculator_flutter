@@ -55,7 +55,7 @@ void main() {
           'taxType': TaxType.noTax,
         },
         {
-          'interestType': InterestType.compoundDaily,
+          'interestType': InterestType.compoundMonthly,
           'accountType': AccountType.savings,
           'taxType': TaxType.custom,
         },

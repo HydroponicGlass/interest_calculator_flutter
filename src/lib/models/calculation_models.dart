@@ -1,7 +1,6 @@
 enum InterestType {
   simple,
   compoundMonthly,
-  compoundDaily,
 }
 
 enum AccountType {
@@ -42,6 +41,28 @@ class InterestCalculationInput {
     this.customTaxRate = 0.0,
     this.monthlyDeposit = 0.0,
   });
+
+  InterestCalculationInput copyWith({
+    double? principal,
+    double? interestRate,
+    int? periodMonths,
+    InterestType? interestType,
+    AccountType? accountType,
+    TaxType? taxType,
+    double? customTaxRate,
+    double? monthlyDeposit,
+  }) {
+    return InterestCalculationInput(
+      principal: principal ?? this.principal,
+      interestRate: interestRate ?? this.interestRate,
+      periodMonths: periodMonths ?? this.periodMonths,
+      interestType: interestType ?? this.interestType,
+      accountType: accountType ?? this.accountType,
+      taxType: taxType ?? this.taxType,
+      customTaxRate: customTaxRate ?? this.customTaxRate,
+      monthlyDeposit: monthlyDeposit ?? this.monthlyDeposit,
+    );
+  }
 }
 
 class InterestCalculationResult {
@@ -66,6 +87,10 @@ class PeriodResult {
   final double interest;
   final double cumulativeInterest;
   final double totalAmount;
+  final double tax;
+  final double afterTaxInterest;
+  final double afterTaxCumulativeInterest;
+  final double afterTaxTotalAmount;
 
   PeriodResult({
     required this.period,
@@ -73,6 +98,10 @@ class PeriodResult {
     required this.interest,
     required this.cumulativeInterest,
     required this.totalAmount,
+    required this.tax,
+    required this.afterTaxInterest,
+    required this.afterTaxCumulativeInterest,
+    required this.afterTaxTotalAmount,
   });
 }
 

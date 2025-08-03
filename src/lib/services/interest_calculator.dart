@@ -31,9 +31,6 @@ class InterestCalculator {
         case InterestType.compoundMonthly:
           totalInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, remainingMonths) - 1);
           break;
-        case InterestType.compoundDaily:
-          totalInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 365, remainingMonths * 30) - 1);
-          break;
       }
     }
 
@@ -56,9 +53,6 @@ class InterestCalculator {
           case InterestType.compoundMonthly:
             monthCumulativeInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, remainingMonths) - 1);
             break;
-          case InterestType.compoundDaily:
-            monthCumulativeInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 365, remainingMonths * 30) - 1);
-            break;
         }
       }
 
@@ -68,12 +62,22 @@ class InterestCalculator {
       
       accumulatedInterest = monthCumulativeInterest;
 
+      double taxRate = _getTaxRate(input.taxType, input.customTaxRate);
+      double monthlyTax = monthlyInterestIncrement * taxRate;
+      double afterTaxMonthlyInterest = monthlyInterestIncrement - monthlyTax;
+      double cumulativeTax = accumulatedInterest * taxRate;
+      double afterTaxCumulativeInterest = accumulatedInterest - cumulativeTax;
+      
       periodResults.add(PeriodResult(
         period: month,
         principal: accumulatedPrincipal,
         interest: monthlyInterestIncrement,
         cumulativeInterest: accumulatedInterest,
         totalAmount: accumulatedPrincipal + accumulatedInterest,
+        tax: cumulativeTax,
+        afterTaxInterest: afterTaxMonthlyInterest,
+        afterTaxCumulativeInterest: afterTaxCumulativeInterest,
+        afterTaxTotalAmount: accumulatedPrincipal + afterTaxCumulativeInterest,
       ));
     }
 
@@ -103,10 +107,6 @@ class InterestCalculator {
         double finalAmount = principal * pow(1 + (input.interestRate / 100 / 12), input.periodMonths);
         totalInterest = finalAmount - principal;
         break;
-      case InterestType.compoundDaily:
-        double finalAmount = principal * pow(1 + (input.interestRate / 100 / 365), input.periodMonths * 30);
-        totalInterest = finalAmount - principal;
-        break;
     }
 
     // Generate monthly breakdown
@@ -121,22 +121,28 @@ class InterestCalculator {
           double currentAmount = principal * pow(1 + (input.interestRate / 100 / 12), month);
           cumulativeInterest = currentAmount - principal;
           break;
-        case InterestType.compoundDaily:
-          double currentAmount = principal * pow(1 + (input.interestRate / 100 / 365), month * 30);
-          cumulativeInterest = currentAmount - principal;
-          break;
       }
 
       double monthlyInterest = month == 1 
           ? cumulativeInterest 
           : cumulativeInterest - (periodResults.isNotEmpty ? periodResults.last.cumulativeInterest : 0);
 
+      double taxRate = _getTaxRate(input.taxType, input.customTaxRate);
+      double monthlyTax = monthlyInterest * taxRate;
+      double afterTaxMonthlyInterest = monthlyInterest - monthlyTax;
+      double cumulativeTax = cumulativeInterest * taxRate;
+      double afterTaxCumulativeInterest = cumulativeInterest - cumulativeTax;
+      
       periodResults.add(PeriodResult(
         period: month,
         principal: principal,
         interest: monthlyInterest,
         cumulativeInterest: cumulativeInterest,
         totalAmount: principal + cumulativeInterest,
+        tax: cumulativeTax,
+        afterTaxInterest: afterTaxMonthlyInterest,
+        afterTaxCumulativeInterest: afterTaxCumulativeInterest,
+        afterTaxTotalAmount: principal + afterTaxCumulativeInterest,
       ));
     }
 
@@ -161,10 +167,6 @@ class InterestCalculator {
     return principal * (pow(1 + (rate / 100 / 12), months) - 1);
   }
 
-  static double _calculateCompoundDailyInterest(double principal, double rate, int months) {
-    int days = months * 30;
-    return principal * (pow(1 + (rate / 100 / 365), days) - 1);
-  }
 
   static double _getTaxRate(TaxType taxType, double customTaxRate) {
     switch (taxType) {
@@ -193,8 +195,6 @@ class InterestCalculator {
           return ((targetAmount - initialPrincipal) / (initialPrincipal * interestRate / 100 / 12)).ceil();
         case InterestType.compoundMonthly:
           return (log(targetAmount / initialPrincipal) / log(1 + (interestRate / 100 / 12))).ceil();
-        case InterestType.compoundDaily:
-          return (log(targetAmount / initialPrincipal) / log(1 + (interestRate / 100 / 365)) / 30).ceil();
       }
     } else {
       for (int months = 1; months <= 1200; months++) {
@@ -230,8 +230,6 @@ class InterestCalculator {
           return targetAmount / (1 + (interestRate / 100 * periodMonths / 12));
         case InterestType.compoundMonthly:
           return targetAmount / pow(1 + (interestRate / 100 / 12), periodMonths);
-        case InterestType.compoundDaily:
-          return targetAmount / pow(1 + (interestRate / 100 / 365), periodMonths * 30);
       }
     } else {
       double low = 1000;
