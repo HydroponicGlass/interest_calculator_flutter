@@ -16,57 +16,53 @@ class InterestCalculator {
   static InterestCalculationResult _calculateCheckingInterest(InterestCalculationInput input) {
     List<PeriodResult> periodResults = [];
     double totalPrincipal = input.monthlyDeposit * input.periodMonths;
-    double totalInterest = 0;
     double interestRateDecimal = input.interestRate / 100;
 
-    // Calculate total interest using progressive monthly deposit logic
-    // Each monthly deposit earns interest for the remaining months
-    for (int depositMonth = 1; depositMonth <= input.periodMonths; depositMonth++) {
-      int remainingMonths = input.periodMonths - depositMonth + 1;
-      
+    // Calculate total interest using original Android app logic
+    // Each monthly deposit earns interest for the period it's in the account
+    double totalInterest = 0;
+    for (int month = 1; month <= input.periodMonths; month++) {
+      double monthlyInterest = 0;
       switch (input.interestType) {
         case InterestType.simple:
-          totalInterest += input.monthlyDeposit * interestRateDecimal * (remainingMonths / 12);
+          // Each deposit earns simple interest for remaining months
+          monthlyInterest = input.monthlyDeposit * interestRateDecimal * month / 12;
           break;
         case InterestType.compoundMonthly:
-          totalInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, remainingMonths) - 1);
+          // Each deposit earns compound interest for remaining months
+          monthlyInterest = input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, month) - 1);
           break;
       }
+      totalInterest += monthlyInterest;
     }
 
-    // Generate period-by-period results showing progressive accumulation
-    double accumulatedPrincipal = 0;
+    // Generate period-by-period results
     double accumulatedInterest = 0;
-
     for (int month = 1; month <= input.periodMonths; month++) {
-      accumulatedPrincipal += input.monthlyDeposit;
+      double accumulatedPrincipal = input.monthlyDeposit * month;
       
       // Calculate cumulative interest up to this month
-      double monthCumulativeInterest = 0;
-      for (int depositMonth = 1; depositMonth <= month; depositMonth++) {
-        int remainingMonths = input.periodMonths - depositMonth + 1;
-        
+      double cumulativeInterest = 0;
+      for (int i = 1; i <= month; i++) {
         switch (input.interestType) {
           case InterestType.simple:
-            monthCumulativeInterest += input.monthlyDeposit * interestRateDecimal * (remainingMonths / 12);
+            cumulativeInterest += input.monthlyDeposit * interestRateDecimal * i / 12;
             break;
           case InterestType.compoundMonthly:
-            monthCumulativeInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, remainingMonths) - 1);
+            cumulativeInterest += input.monthlyDeposit * (pow(1 + interestRateDecimal / 12, i) - 1);
             break;
         }
       }
 
-      double monthlyInterestIncrement = month == 1 
-          ? monthCumulativeInterest 
-          : monthCumulativeInterest - accumulatedInterest;
-      
-      accumulatedInterest = monthCumulativeInterest;
+      double monthlyInterestIncrement = cumulativeInterest - accumulatedInterest;
+      accumulatedInterest = cumulativeInterest;
 
       double taxRate = _getTaxRate(input.taxType, input.customTaxRate);
-      double monthlyTax = monthlyInterestIncrement * taxRate;
-      double afterTaxMonthlyInterest = monthlyInterestIncrement - monthlyTax;
       double cumulativeTax = accumulatedInterest * taxRate;
       double afterTaxCumulativeInterest = accumulatedInterest - cumulativeTax;
+      double monthlyAfterTaxIncrement = month == 1
+          ? afterTaxCumulativeInterest
+          : afterTaxCumulativeInterest - (periodResults.isNotEmpty ? periodResults.last.afterTaxCumulativeInterest : 0);
       
       periodResults.add(PeriodResult(
         period: month,
@@ -75,7 +71,7 @@ class InterestCalculator {
         cumulativeInterest: accumulatedInterest,
         totalAmount: accumulatedPrincipal + accumulatedInterest,
         tax: cumulativeTax,
-        afterTaxInterest: afterTaxMonthlyInterest,
+        afterTaxInterest: monthlyAfterTaxIncrement,
         afterTaxCumulativeInterest: afterTaxCumulativeInterest,
         afterTaxTotalAmount: accumulatedPrincipal + afterTaxCumulativeInterest,
       ));
