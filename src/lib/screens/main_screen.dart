@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/app_theme.dart';
 import 'calculator/calculator_home_screen.dart';
 import 'account/my_account_screen.dart';
+import 'settings/settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,6 +19,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const CalculatorHomeScreen(),
     const MyAccountScreen(),
+    const SettingsScreen(),
   ];
 
   @override
@@ -99,6 +101,12 @@ class _MainScreenState extends State<MainScreen> {
                 _currentIndex == 1 ? Icons.account_balance_wallet : Icons.account_balance_wallet_outlined,
               ),
               label: '내 계좌',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(
+                _currentIndex == 2 ? Icons.settings : Icons.settings_outlined,
+              ),
+              label: '설정',
             ),
           ],
         ),
