@@ -117,8 +117,8 @@ class CalculatorHomeScreen extends StatelessWidget {
                     _buildCalculatorCard(
                       context,
                       icon: Icons.attach_money,
-                      title: '예금 필요금액',
-                      subtitle: '목표달성 필요원금',
+                      title: '적금 목표수익\n필요 입금액',
+                      subtitle: '목표수익을 위한 월간 필요입금액',
                       color: Colors.purple,
                       onTap: () => Navigator.push(
                         context,
@@ -161,8 +161,8 @@ class CalculatorHomeScreen extends StatelessWidget {
                     _buildCalculatorCard(
                       context,
                       icon: Icons.swap_horiz,
-                      title: '적금 이체',
-                      subtitle: '적금 이체 분석',
+                      title: '예금 갈아타기',
+                      subtitle: '만기 전 다른 예금으로 변경시 이자 비교',
                       color: Colors.brown,
                       onTap: () => Navigator.push(
                         context,
@@ -191,6 +191,7 @@ class CalculatorHomeScreen extends StatelessWidget {
       onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 50,
@@ -212,12 +213,18 @@ class CalculatorHomeScreen extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
+          Flexible(
+            child: Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

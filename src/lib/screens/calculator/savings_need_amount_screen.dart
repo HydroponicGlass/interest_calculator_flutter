@@ -143,7 +143,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('예금 필요금액'),
+        title: const Text('적금 목표수익 필요 입금액'),
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,
