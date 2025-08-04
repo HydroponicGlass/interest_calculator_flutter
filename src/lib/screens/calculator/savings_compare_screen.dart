@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
@@ -18,6 +19,17 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
   final _resultSectionKey = GlobalKey();
+  
+  final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 3,
+      lineLength: 80,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
   
   // Account A controllers
   final _principalAController = TextEditingController();
@@ -128,6 +140,8 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
       return;
     }
 
+    _logger.i('⚔️ [예금 상품 비교] 계산 시작');
+
     final principalA = CurrencyFormatter.parseWon(_principalAController.text);
     final interestRateA = CurrencyFormatter.parsePercent(_interestRateAController.text);
     final periodA = CurrencyFormatter.parseNumber(_periodAController.text).toInt();
@@ -135,6 +149,15 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
     final principalB = CurrencyFormatter.parseWon(_principalBController.text);
     final interestRateB = CurrencyFormatter.parsePercent(_interestRateBController.text);
     final periodB = CurrencyFormatter.parseNumber(_periodBController.text).toInt();
+
+    // Log input values for both products
+    _logger.i('📊 [A 상품 입력값] 원금: ${CurrencyFormatter.formatWon(principalA)}, '
+        '이자율: ${interestRateA.toStringAsFixed(2)}%, 예치기간: ${periodA}개월, '
+        '계산방식: ${_interestTypeA == InterestType.simple ? "단리" : "월복리"}');
+    
+    _logger.i('📊 [B 상품 입력값] 원금: ${CurrencyFormatter.formatWon(principalB)}, '
+        '이자율: ${interestRateB.toStringAsFixed(2)}%, 예치기간: ${periodB}개월, '
+        '계산방식: ${_interestTypeB == InterestType.simple ? "단리" : "월복리"}');
 
     final inputA = InterestCalculationInput(
       principal: principalA,
@@ -156,6 +179,34 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
       monthlyDeposit: 0,
     );
 
+    // Calculate results
+    final resultA = InterestCalculator.calculateInterest(inputA);
+    final resultB = InterestCalculator.calculateInterest(inputB);
+
+    // Log intermediate calculation results
+    _logger.i('🧮 [A 상품 계산결과] 원금: ${CurrencyFormatter.formatWon(principalA)}, '
+        '이자수익: ${CurrencyFormatter.formatWon(resultA.totalInterest)}, '
+        '세금: ${CurrencyFormatter.formatWon(resultA.taxAmount)}, '
+        '세후수령액: ${CurrencyFormatter.formatWon(resultA.finalAmount)}');
+    
+    _logger.i('🧮 [B 상품 계산결과] 원금: ${CurrencyFormatter.formatWon(principalB)}, '
+        '이자수익: ${CurrencyFormatter.formatWon(resultB.totalInterest)}, '
+        '세금: ${CurrencyFormatter.formatWon(resultB.taxAmount)}, '
+        '세후수령액: ${CurrencyFormatter.formatWon(resultB.finalAmount)}');
+
+    // Log comparison results with effective rates
+    final effectiveRateA = (resultA.totalInterest / principalA) / (periodA / 12) * 100;
+    final effectiveRateB = (resultB.totalInterest / principalB) / (periodB / 12) * 100;
+    
+    final betterOption = resultA.finalAmount > resultB.finalAmount ? 'A' : 'B';
+    final difference = (resultA.finalAmount - resultB.finalAmount).abs();
+    final profitDiffPercent = (difference / (resultA.finalAmount < resultB.finalAmount ? resultA.finalAmount : resultB.finalAmount) * 100);
+    
+    _logger.i('📈 [실질 수익률] A 상품: ${effectiveRateA.toStringAsFixed(2)}%, B 상품: ${effectiveRateB.toStringAsFixed(2)}%');
+    
+    _logger.i('🏆 [비교 결과] $betterOption 상품이 유리함! '
+        '차이: ${CurrencyFormatter.formatWon(difference)} (${profitDiffPercent.toStringAsFixed(2)}% 더 유리)');
+
     // Save the inputs for next time
     final compareData = {
       'principalA': principalA,
@@ -170,10 +221,12 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
     await CalculationHistoryService.saveLastSavingsCompareInput(compareData);
 
     setState(() {
-      _resultA = InterestCalculator.calculateInterest(inputA);
-      _resultB = InterestCalculator.calculateInterest(inputB);
+      _resultA = resultA;
+      _resultB = resultB;
       _showResult = true;
     });
+
+    _logger.i('✅ [예금 상품 비교] 계산 완료 및 결과 표시');
 
     // Scroll to results after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {

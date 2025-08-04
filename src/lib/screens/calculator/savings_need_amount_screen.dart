@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
@@ -15,6 +16,7 @@ class SavingsNeedAmountScreen extends StatefulWidget {
 }
 
 class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
+  final Logger logger = Logger();
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
   final _resultSectionKey = GlobalKey();
@@ -100,9 +102,18 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
       return;
     }
 
+    // Log calculation start
+    logger.i('🎯 적금 목표수익 필요 입금액 계산을 시작합니다');
+
     final targetAmount = CurrencyFormatter.parseWon(_targetAmountController.text);
     final period = CurrencyFormatter.parseNumber(_periodController.text).toInt();
     final interestRate = CurrencyFormatter.parsePercent(_interestRateController.text);
+
+    // Log all input values
+    logger.d('입력값 - 목표 금액: ${CurrencyFormatter.formatWon(targetAmount)}');
+    logger.d('입력값 - 예치 기간: ${period}개월');
+    logger.d('입력값 - 연 이자율: ${CurrencyFormatter.formatPercent(interestRate)}');
+    logger.d('입력값 - 계산 방식: ${_interestType == InterestType.simple ? "단리" : "월복리"}');
 
     final requiredAmount = InterestCalculator.calculateNeedAmountForGoal(
       targetAmount: targetAmount,
@@ -111,6 +122,10 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
       interestType: _interestType,
       accountType: AccountType.savings,
     );
+
+    // Log the calculated result
+    logger.i('계산 결과 - 필요 원금: ${CurrencyFormatter.formatWon(requiredAmount)}');
+    logger.i('예상 이자수익: ${CurrencyFormatter.formatWon(targetAmount - requiredAmount)}');
 
     // Save the inputs for next time
     final inputData = {
@@ -125,6 +140,9 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
       _resultAmount = requiredAmount;
       _showResult = true;
     });
+
+    // Log completion
+    logger.i('✅ 적금 목표수익 필요 입금액 계산이 완료되었습니다');
 
     // Scroll to results after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
@@ -18,6 +19,17 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
   final _resultSectionKey = GlobalKey();
+  
+  final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 3,
+      lineLength: 80,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
   
   final _amountController = TextEditingController();
   final _interestRateController = TextEditingController();
@@ -103,9 +115,19 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
       return;
     }
 
+    _logger.i('⚔️ [적금 vs 예금 비교] 계산 시작');
+
     final amount = CurrencyFormatter.parseWon(_amountController.text);
     final interestRate = CurrencyFormatter.parsePercent(_interestRateController.text);
     final period = CurrencyFormatter.parseNumber(_periodController.text).toInt();
+
+    // Log input values
+    _logger.i('📊 [입력값] 금액: ${CurrencyFormatter.formatWon(amount)}, '
+        '이자율: ${interestRate.toStringAsFixed(2)}%, 기간: ${period}개월, '
+        '계산방식: ${_interestType == InterestType.simple ? "단리" : "월복리"}');
+    
+    _logger.i('💰 [비교 조건] 적금: 매월 ${CurrencyFormatter.formatWon(amount)} 납입 vs '
+        '예금: 전체 ${CurrencyFormatter.formatWon(amount * period)} 일시예치');
 
     // Calculate for checking account (monthly deposits)
     final checkingInput = InterestCalculationInput(
@@ -129,6 +151,36 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
       monthlyDeposit: 0,
     );
 
+    // Calculate results
+    final checkingResult = InterestCalculator.calculateInterest(checkingInput);
+    final savingsResult = InterestCalculator.calculateInterest(savingsInput);
+
+    // Log calculation results
+    _logger.i('🧮 [적금 계산결과] 총납입: ${CurrencyFormatter.formatWon(amount * period)}, '
+        '이자수익: ${CurrencyFormatter.formatWon(checkingResult.totalInterest)}, '
+        '세금: ${CurrencyFormatter.formatWon(checkingResult.taxAmount)}, '
+        '세후수령액: ${CurrencyFormatter.formatWon(checkingResult.finalAmount)}');
+    
+    _logger.i('🧮 [예금 계산결과] 원금: ${CurrencyFormatter.formatWon(amount * period)}, '
+        '이자수익: ${CurrencyFormatter.formatWon(savingsResult.totalInterest)}, '
+        '세금: ${CurrencyFormatter.formatWon(savingsResult.taxAmount)}, '
+        '세후수령액: ${CurrencyFormatter.formatWon(savingsResult.finalAmount)}');
+
+    // Log comparison results
+    final betterOption = savingsResult.finalAmount > checkingResult.finalAmount ? '예금' : '적금';
+    final difference = (savingsResult.finalAmount - checkingResult.finalAmount).abs();
+    final profitDiffPercent = (difference / (checkingResult.finalAmount < savingsResult.finalAmount ? checkingResult.finalAmount : savingsResult.finalAmount) * 100);
+    
+    _logger.i('🏆 [비교 결과] $betterOption이 유리함! '
+        '차이: ${CurrencyFormatter.formatWon(difference)} (${profitDiffPercent.toStringAsFixed(2)}% 더 유리)');
+    
+    // Log the reason for better option
+    if (savingsResult.finalAmount > checkingResult.finalAmount) {
+      _logger.i('📊 [예금 유리 이유] 전체 금액을 처음부터 예치하여 더 긴 기간동안 복리 효과를 받음');
+    } else {
+      _logger.i('📊 [적금 유리 이유] 매월 분할 납입으로 초기 자금 부담이 적고, 단계적으로 복리 효과를 누림');
+    }
+
     // Save the inputs for next time
     final inputData = {
       'amount': amount,
@@ -139,10 +191,12 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
     await CalculationHistoryService.saveLastCheckingSavingsCompareInput(inputData);
 
     setState(() {
-      _checkingResult = InterestCalculator.calculateInterest(checkingInput);
-      _savingsResult = InterestCalculator.calculateInterest(savingsInput);
+      _checkingResult = checkingResult;
+      _savingsResult = savingsResult;
       _showResult = true;
     });
+
+    _logger.i('✅ [적금 vs 예금 비교] 계산 완료 및 결과 표시');
 
     // Scroll to results after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {

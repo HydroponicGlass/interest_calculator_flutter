@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
@@ -21,6 +22,17 @@ class CheckingInterestScreen extends StatefulWidget {
 }
 
 class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
+  final _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 8,
+      lineLength: 80,
+      colors: true,
+      printEmojis: true,
+      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+    ),
+  );
+  
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
   final _resultSectionKey = GlobalKey();
@@ -118,6 +130,14 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
         ? CurrencyFormatter.parsePercent(_customTaxRateController.text)
         : 0.0;
 
+    _logger.i('🏦 적금 이자계산 시작');
+    _logger.i('📋 입력값:');
+    _logger.i('  💵 월 납입금액: ${CurrencyFormatter.formatWon(monthlyDeposit)}');
+    _logger.i('  📈 연 이자율: ${interestRate.toStringAsFixed(2)}%');
+    _logger.i('  📅 가입기간: $period개월');
+    _logger.i('  ⚙️ 계산방식: $_interestType');
+    _logger.i('  🏛️ 세금 유형: $_taxType ${_taxType == TaxType.custom ? '($customTaxRate%)' : ''}');
+
     final input = InterestCalculationInput(
       principal: 0,
       interestRate: interestRate,
@@ -129,11 +149,28 @@ class _CheckingInterestScreenState extends State<CheckingInterestScreen> {
       monthlyDeposit: monthlyDeposit,
     );
 
+    _logger.i('');
+    _logger.i('🔢 적금 계산 진행:');
+    _logger.i('  💰 총 납입원금: ${CurrencyFormatter.formatWon(monthlyDeposit * period)} (${CurrencyFormatter.formatWon(monthlyDeposit)} × $period개월)');
+    _logger.i('  📊 계산 유형: 적금 (매월 납입)');
+    _logger.i('  ⚙️ 이자 계산방식: $_interestType');
+
     // Save the input for next time
     await CalculationHistoryService.saveLastCheckingInput(input);
 
     final result = InterestCalculator.calculateInterest(input);
     final additionalInfo = AdditionalInfoService.generateAdditionalInfo(input, result);
+
+    final afterTaxInterest = result.totalInterest - result.taxAmount;
+    
+    _logger.i('');
+    _logger.i('📊 계산 결과:');
+    _logger.i('  💎 세전 이자수익: ${CurrencyFormatter.formatWon(result.totalInterest)}');
+    _logger.i('  🏛️ 세금: ${CurrencyFormatter.formatWon(result.taxAmount)}');
+    _logger.i('  💰 세후 이자수익: ${CurrencyFormatter.formatWon(afterTaxInterest)}');
+    _logger.i('  🎯 최종 수령액: ${CurrencyFormatter.formatWon(result.finalAmount)}');
+    _logger.i('  📈 수익률: ${((afterTaxInterest / (monthlyDeposit * period)) * 100).toStringAsFixed(2)}% (세후 기준)');
+    _logger.i('✅ 적금 이자계산 완료');
 
     setState(() {
       _result = result;

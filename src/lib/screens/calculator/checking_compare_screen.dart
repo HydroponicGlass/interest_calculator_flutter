@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
@@ -19,6 +20,17 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
   final _resultSectionKey = GlobalKey();
+  
+  final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 3,
+      lineLength: 80,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
   
   // Account A controllers
   final _monthlyDepositAController = TextEditingController();
@@ -129,6 +141,8 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
       return;
     }
 
+    _logger.i('⚔️ [적금 상품 비교] 계산 시작');
+
     final monthlyDepositA = CurrencyFormatter.parseWon(_monthlyDepositAController.text);
     final interestRateA = CurrencyFormatter.parsePercent(_interestRateAController.text);
     final periodA = CurrencyFormatter.parseNumber(_periodAController.text).toInt();
@@ -136,6 +150,15 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
     final monthlyDepositB = CurrencyFormatter.parseWon(_monthlyDepositBController.text);
     final interestRateB = CurrencyFormatter.parsePercent(_interestRateBController.text);
     final periodB = CurrencyFormatter.parseNumber(_periodBController.text).toInt();
+
+    // Log input values for both products
+    _logger.i('📊 [A 상품 입력값] 월납입: ${CurrencyFormatter.formatWon(monthlyDepositA)}, '
+        '이자율: ${interestRateA.toStringAsFixed(2)}%, 기간: ${periodA}개월, '
+        '계산방식: ${_interestTypeA == InterestType.simple ? "단리" : "월복리"}');
+    
+    _logger.i('📊 [B 상품 입력값] 월납입: ${CurrencyFormatter.formatWon(monthlyDepositB)}, '
+        '이자율: ${interestRateB.toStringAsFixed(2)}%, 기간: ${periodB}개월, '
+        '계산방식: ${_interestTypeB == InterestType.simple ? "단리" : "월복리"}');
 
     final inputA = InterestCalculationInput(
       principal: 0,
@@ -157,6 +180,29 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
       monthlyDeposit: monthlyDepositB,
     );
 
+    // Calculate results
+    final resultA = InterestCalculator.calculateInterest(inputA);
+    final resultB = InterestCalculator.calculateInterest(inputB);
+
+    // Log intermediate calculation results
+    _logger.i('🧮 [A 상품 계산결과] 총납입: ${CurrencyFormatter.formatWon(resultA.totalAmount - resultA.totalInterest)}, '
+        '이자수익: ${CurrencyFormatter.formatWon(resultA.totalInterest)}, '
+        '세금: ${CurrencyFormatter.formatWon(resultA.taxAmount)}, '
+        '세후수령액: ${CurrencyFormatter.formatWon(resultA.finalAmount)}');
+    
+    _logger.i('🧮 [B 상품 계산결과] 총납입: ${CurrencyFormatter.formatWon(resultB.totalAmount - resultB.totalInterest)}, '
+        '이자수익: ${CurrencyFormatter.formatWon(resultB.totalInterest)}, '
+        '세금: ${CurrencyFormatter.formatWon(resultB.taxAmount)}, '
+        '세후수령액: ${CurrencyFormatter.formatWon(resultB.finalAmount)}');
+
+    // Log comparison results
+    final betterOption = resultA.finalAmount > resultB.finalAmount ? 'A' : 'B';
+    final difference = (resultA.finalAmount - resultB.finalAmount).abs();
+    final profitDiffPercent = (difference / (resultA.finalAmount < resultB.finalAmount ? resultA.finalAmount : resultB.finalAmount) * 100);
+    
+    _logger.i('🏆 [비교 결과] $betterOption 상품이 유리함! '
+        '차이: ${CurrencyFormatter.formatWon(difference)} (${profitDiffPercent.toStringAsFixed(2)}% 더 유리)');
+
     // Save the inputs for next time
     final compareData = {
       'monthlyDepositA': monthlyDepositA,
@@ -171,10 +217,12 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
     await CalculationHistoryService.saveLastCheckingCompareInput(compareData);
 
     setState(() {
-      _resultA = InterestCalculator.calculateInterest(inputA);
-      _resultB = InterestCalculator.calculateInterest(inputB);
+      _resultA = resultA;
+      _resultB = resultB;
       _showResult = true;
     });
+
+    _logger.i('✅ [적금 상품 비교] 계산 완료 및 결과 표시');
 
     // Scroll to results after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
@@ -21,6 +22,17 @@ class SavingsInterestScreen extends StatefulWidget {
 }
 
 class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
+  final _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 8,
+      lineLength: 80,
+      colors: true,
+      printEmojis: true,
+      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+    ),
+  );
+  
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
   final _resultSectionKey = GlobalKey();
@@ -118,6 +130,14 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
         ? CurrencyFormatter.parsePercent(_customTaxRateController.text)
         : 0.0;
 
+    _logger.i('💰 예금 이자 계산 시작');
+    _logger.i('📋 입력값:');
+    _logger.i('  💵 예금 원금: ${CurrencyFormatter.formatWon(principal)}');
+    _logger.i('  📊 연 이자율: ${interestRate.toStringAsFixed(2)}%');
+    _logger.i('  📅 예치기간: $period개월');
+    _logger.i('  ⚙️ 계산방식: $_interestType');
+    _logger.i('  🏛️ 세금 유형: $_taxType ${_taxType == TaxType.custom ? '($customTaxRate%)' : ''}');
+
     final input = InterestCalculationInput(
       principal: principal,
       interestRate: interestRate,
@@ -134,6 +154,15 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
 
     final result = InterestCalculator.calculateInterest(input);
     final additionalInfo = AdditionalInfoService.generateAdditionalInfo(input, result);
+
+    final afterTaxInterest = result.totalInterest - result.taxAmount;
+    _logger.i('');
+    _logger.i('📊 계산 결과:');
+    _logger.i('  💎 세전 이자수익: ${CurrencyFormatter.formatWon(result.totalInterest)}');
+    _logger.i('  💰 세후 이자수익: ${CurrencyFormatter.formatWon(afterTaxInterest)}');
+    _logger.i('  🏛️ 세금: ${CurrencyFormatter.formatWon(result.taxAmount)}');
+    _logger.i('  🎯 최종 수령액: ${CurrencyFormatter.formatWon(result.finalAmount)}');
+    _logger.i('✅ 예금 이자 계산 완료');
 
     setState(() {
       _result = result;

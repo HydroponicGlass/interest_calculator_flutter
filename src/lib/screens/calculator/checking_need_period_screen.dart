@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
@@ -15,6 +16,7 @@ class CheckingNeedPeriodScreen extends StatefulWidget {
 }
 
 class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
+  final Logger _logger = Logger();
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
   final _resultSectionKey = GlobalKey();
@@ -100,9 +102,13 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
       return;
     }
 
+    _logger.i('🎯 적금 필요기간 계산 시작');
+
     final targetAmount = CurrencyFormatter.parseWon(_targetAmountController.text);
     final monthlyDeposit = CurrencyFormatter.parseWon(_monthlyDepositController.text);
     final interestRate = CurrencyFormatter.parsePercent(_interestRateController.text);
+
+    _logger.d('입력값 - 목표금액: ${CurrencyFormatter.formatWon(targetAmount)}, 월납입금액: ${CurrencyFormatter.formatWon(monthlyDeposit)}, 연이자율: ${CurrencyFormatter.formatPercent(interestRate)}, 계산방식: ${_interestType.name}');
 
     final period = InterestCalculator.calculateNeedPeriodForGoal(
       targetAmount: targetAmount,
@@ -111,6 +117,8 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
       interestType: _interestType,
       accountType: AccountType.checking,
     );
+
+    _logger.i('계산 결과 - 필요기간: ${period != null ? CurrencyFormatter.formatPeriod(period) : "계산불가"} (${period ?? 0}개월)');
 
     // Save the inputs for next time
     final inputData = {
@@ -125,6 +133,8 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
       _resultPeriod = period;
       _showResult = true;
     });
+
+    _logger.i('✅ 적금 필요기간 계산 완료');
 
     // Scroll to results after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
