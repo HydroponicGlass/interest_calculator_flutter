@@ -23,8 +23,10 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
   final _targetAmountController = TextEditingController();
   final _periodController = TextEditingController();
   final _interestRateController = TextEditingController();
+  final _customTaxRateController = TextEditingController();
 
   InterestType _interestType = InterestType.compoundMonthly;
+  TaxType _taxType = TaxType.normal;
   double? _resultAmount;
   bool _showResult = false;
 
@@ -40,6 +42,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
     _targetAmountController.dispose();
     _periodController.dispose();
     _interestRateController.dispose();
+    _customTaxRateController.dispose();
     super.dispose();
   }
 
@@ -58,6 +61,12 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
         }
         if (lastInput['interestType'] != null) {
           _interestType = InterestType.values[lastInput['interestType']];
+        }
+        if (lastInput['customTaxRate'] != null && lastInput['customTaxRate'] > 0) {
+          _customTaxRateController.text = lastInput['customTaxRate'].toString();
+        }
+        if (lastInput['taxType'] != null) {
+          _taxType = TaxType.values[lastInput['taxType']];
         }
       });
     }
@@ -103,29 +112,40 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
     }
 
     // Log calculation start
-    logger.i('🎯 적금 목표수익 필요 입금액 계산을 시작합니다');
+    logger.i('🎯 적금 목표수익 필요 월납입액 계산을 시작합니다');
 
     final targetAmount = CurrencyFormatter.parseWon(_targetAmountController.text);
     final period = CurrencyFormatter.parseNumber(_periodController.text).toInt();
     final interestRate = CurrencyFormatter.parsePercent(_interestRateController.text);
+    final customTaxRate = _taxType == TaxType.custom 
+        ? CurrencyFormatter.parsePercent(_customTaxRateController.text)
+        : 0.0;
 
     // Log all input values
     logger.d('입력값 - 목표 금액: ${CurrencyFormatter.formatWon(targetAmount)}');
     logger.d('입력값 - 예치 기간: ${period}개월');
     logger.d('입력값 - 연 이자율: ${CurrencyFormatter.formatPercent(interestRate)}');
     logger.d('입력값 - 계산 방식: ${_interestType == InterestType.simple ? "단리" : "월복리"}');
+    logger.d('입력값 - 세금유형: $_taxType ${_taxType == TaxType.custom ? '($customTaxRate%)' : ''}');
 
     final requiredAmount = InterestCalculator.calculateNeedAmountForGoal(
       targetAmount: targetAmount,
       periodMonths: period,
       interestRate: interestRate,
       interestType: _interestType,
-      accountType: AccountType.savings,
+      accountType: AccountType.checking,
+      taxType: _taxType,
+      customTaxRate: customTaxRate,
     );
 
     // Log the calculated result
-    logger.i('계산 결과 - 필요 원금: ${CurrencyFormatter.formatWon(requiredAmount)}');
-    logger.i('예상 이자수익: ${CurrencyFormatter.formatWon(targetAmount - requiredAmount)}');
+    logger.i('계산 결과 - 필요 월납입액: ${CurrencyFormatter.formatWon(requiredAmount)}');
+    
+    // Calculate total deposit and expected interest for checking account
+    final totalDeposit = requiredAmount * period;
+    final expectedInterest = targetAmount - totalDeposit;
+    logger.i('총 납입원금: ${CurrencyFormatter.formatWon(totalDeposit)}');
+    logger.i('예상 이자수익: ${CurrencyFormatter.formatWon(expectedInterest)}');
 
     // Save the inputs for next time
     final inputData = {
@@ -133,6 +153,8 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
       'period': period,
       'interestRate': interestRate,
       'interestType': _interestType.index,
+      'taxType': _taxType.index,
+      'customTaxRate': customTaxRate,
     };
     await CalculationHistoryService.saveLastSavingsNeedAmountInput(inputData);
 
@@ -142,7 +164,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
     });
 
     // Log completion
-    logger.i('✅ 적금 목표수익 필요 입금액 계산이 완료되었습니다');
+    logger.i('✅ 적금 목표수익 필요 월납입액 계산이 완료되었습니다');
 
     // Scroll to results after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -161,7 +183,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('적금 목표수익 필요 입금액'),
+        title: const Text('적금 목표수익 필요 월납입액'),
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,
@@ -256,6 +278,29 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                CustomCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '세금 설정',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTaxTypeSelector(),
+                      if (_taxType == TaxType.custom) ...[
+                        const SizedBox(height: 16),
+                        PercentInputField(
+                          label: '사용자 정의 세율',
+                          controller: _customTaxRateController,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _calculate,
@@ -267,7 +312,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
                     ),
                   ),
                   child: const Text(
-                    '필요금액 계산하기',
+                    '필요 월납입액 계산하기',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -389,7 +434,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            '필요 원금',
+            '필요 월납입액',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: Colors.white.withValues(alpha: 0.9),
             ),
@@ -412,7 +457,8 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
     final period = CurrencyFormatter.parseNumber(_periodController.text).toInt();
     final interestRate = CurrencyFormatter.parsePercent(_interestRateController.text);
     
-    final expectedInterest = targetAmount - _resultAmount!;
+    final totalDeposit = _resultAmount! * period;
+    final expectedInterest = targetAmount - totalDeposit;
 
     return CustomCard(
       child: Column(
@@ -433,10 +479,17 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
-            '필요 원금',
+            '필요 월납입액',
             CurrencyFormatter.formatWon(_resultAmount!),
             Icons.account_balance_wallet,
             AppTheme.primaryColor,
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            '총 납입원금',
+            CurrencyFormatter.formatWon(totalDeposit),
+            Icons.savings,
+            Colors.blue,
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
@@ -476,7 +529,7 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${CurrencyFormatter.formatWon(_resultAmount!)}을 ${period}개월간 예치하면 목표 달성이 가능합니다.',
+                    '매월 ${CurrencyFormatter.formatWon(_resultAmount!)}씩 ${period}개월간 납입하면 목표 달성이 가능합니다.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppTheme.textSecondary,
                     ),
@@ -520,6 +573,38 @@ class _SavingsNeedAmountScreenState extends State<SavingsNeedAmountScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTaxTypeSelector() {
+    return Column(
+      children: TaxType.values.map((type) {
+        String title = '';
+        
+        switch (type) {
+          case TaxType.normal:
+            title = '일반과세 (15.4%)';
+            break;
+          case TaxType.noTax:
+            title = '비과세';
+            break;
+          case TaxType.custom:
+            title = '사용자 정의';
+            break;
+        }
+
+        return RadioListTile<TaxType>(
+          title: Text(title),
+          value: type,
+          groupValue: _taxType,
+          onChanged: (value) {
+            setState(() {
+              _taxType = value!;
+            });
+          },
+          activeColor: Colors.purple,
+        );
+      }).toList(),
     );
   }
 }

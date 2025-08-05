@@ -332,41 +332,36 @@ class InterestCalculator {
     required double interestRate,
     required InterestType interestType,
     required AccountType accountType,
+    TaxType taxType = TaxType.normal,
+    double customTaxRate = 0.0,
   }) {
-    if (accountType == AccountType.savings) {
-      switch (interestType) {
-        case InterestType.simple:
-          return targetAmount / (1 + (interestRate / 100 * periodMonths / 12));
-        case InterestType.compoundMonthly:
-          return targetAmount / pow(1 + (interestRate / 100 / 12), periodMonths);
-      }
-    } else {
-      double low = 1000;
-      double high = targetAmount;
+    // Use binary search for both savings and checking accounts to handle tax calculations
+    double low = accountType == AccountType.savings ? 1000 : 1000;
+    double high = targetAmount;
+    
+    while (high - low > 1) {
+      double mid = (low + high) / 2;
       
-      while (high - low > 1) {
-        double mid = (low + high) / 2;
-        
-        var input = InterestCalculationInput(
-          principal: 0,
-          interestRate: interestRate,
-          periodMonths: periodMonths,
-          interestType: interestType,
-          accountType: accountType,
-          taxType: TaxType.noTax,
-          monthlyDeposit: mid,
-        );
-        
-        var result = calculateInterest(input);
-        
-        if (result.totalAmount >= targetAmount) {
-          high = mid;
-        } else {
-          low = mid;
-        }
-      }
+      var input = InterestCalculationInput(
+        principal: accountType == AccountType.savings ? mid : 0,
+        interestRate: interestRate,
+        periodMonths: periodMonths,
+        interestType: interestType,
+        accountType: accountType,
+        taxType: taxType,
+        customTaxRate: customTaxRate,
+        monthlyDeposit: accountType == AccountType.checking ? mid : 0,
+      );
       
-      return high;
+      var result = calculateInterest(input);
+      
+      if (result.finalAmount >= targetAmount) {
+        high = mid;
+      } else {
+        low = mid;
+      }
     }
+    
+    return high;
   }
 }
