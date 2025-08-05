@@ -105,6 +105,22 @@ class PeriodResult {
   });
 }
 
+class PeriodCalculationResult {
+  final int? requiredPeriod;
+  final List<PeriodResult> monthlyResults;
+  final double targetAmount;
+  final double initialPrincipal;
+  final bool achievable;
+
+  PeriodCalculationResult({
+    this.requiredPeriod,
+    required this.monthlyResults,
+    required this.targetAmount,
+    required this.initialPrincipal,
+    required this.achievable,
+  });
+}
+
 class MyAccount {
   final int? id;
   final String name;

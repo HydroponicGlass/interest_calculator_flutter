@@ -23,9 +23,11 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
   final _targetAmountController = TextEditingController();
   final _initialPrincipalController = TextEditingController();
   final _interestRateController = TextEditingController();
+  final _customTaxRateController = TextEditingController();
 
   InterestType _interestType = InterestType.compoundMonthly;
-  int? _resultPeriod;
+  TaxType _taxType = TaxType.normal;
+  PeriodCalculationResult? _calculationResult;
   bool _showResult = false;
 
   @override
@@ -40,6 +42,7 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
     _targetAmountController.dispose();
     _initialPrincipalController.dispose();
     _interestRateController.dispose();
+    _customTaxRateController.dispose();
     super.dispose();
   }
 
@@ -58,6 +61,12 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
         }
         if (lastInput['interestType'] != null) {
           _interestType = InterestType.values[lastInput['interestType']];
+        }
+        if (lastInput['customTaxRate'] != null && lastInput['customTaxRate'] > 0) {
+          _customTaxRateController.text = lastInput['customTaxRate'].toString();
+        }
+        if (lastInput['taxType'] != null) {
+          _taxType = TaxType.values[lastInput['taxType']];
         }
       });
     }
@@ -107,19 +116,24 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
     final targetAmount = CurrencyFormatter.parseWon(_targetAmountController.text);
     final initialPrincipal = CurrencyFormatter.parseWon(_initialPrincipalController.text);
     final interestRate = CurrencyFormatter.parsePercent(_interestRateController.text);
+    final customTaxRate = _taxType == TaxType.custom 
+        ? CurrencyFormatter.parsePercent(_customTaxRateController.text)
+        : 0.0;
 
-    _logger.d('입력값 - 목표금액: ${CurrencyFormatter.formatWon(targetAmount)}, 초기원금: ${CurrencyFormatter.formatWon(initialPrincipal)}, 연이자율: ${CurrencyFormatter.formatPercent(interestRate)}, 계산방식: ${_interestType.name}');
+    _logger.d('입력값 - 목표금액: ${CurrencyFormatter.formatWon(targetAmount)}, 초기원금: ${CurrencyFormatter.formatWon(initialPrincipal)}, 연이자율: ${CurrencyFormatter.formatPercent(interestRate)}, 계산방식: ${_interestType.name}, 세금유형: $_taxType ${_taxType == TaxType.custom ? '($customTaxRate%)' : ''}');
 
-    final period = InterestCalculator.calculateNeedPeriodForGoal(
+    final calculationResult = InterestCalculator.calculateNeedPeriodForGoalWithDetails(
       targetAmount: targetAmount,
       monthlyDeposit: 0,
       interestRate: interestRate,
       interestType: _interestType,
       accountType: AccountType.savings,
+      taxType: _taxType,
+      customTaxRate: customTaxRate,
       initialPrincipal: initialPrincipal,
     );
 
-    _logger.i('계산 결과 - 필요기간: ${period != null ? CurrencyFormatter.formatPeriod(period) : "계산불가"} (${period ?? 0}개월)');
+    _logger.i('계산 결과 - 필요기간: ${calculationResult.requiredPeriod != null ? CurrencyFormatter.formatPeriod(calculationResult.requiredPeriod!) : "계산불가"} (${calculationResult.requiredPeriod ?? 0}개월)');
 
     // Save the inputs for next time
     final inputData = {
@@ -127,11 +141,13 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
       'initialPrincipal': initialPrincipal,
       'interestRate': interestRate,
       'interestType': _interestType.index,
+      'taxType': _taxType.index,
+      'customTaxRate': customTaxRate,
     };
     await CalculationHistoryService.saveLastSavingsNeedPeriodInput(inputData);
 
     setState(() {
-      _resultPeriod = period;
+      _calculationResult = calculationResult;
       _showResult = true;
     });
 
@@ -246,6 +262,29 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                CustomCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '세금 설정',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTaxTypeSelector(),
+                      if (_taxType == TaxType.custom) ...{
+                        const SizedBox(height: 16),
+                        PercentInputField(
+                          label: '사용자 정의 세율',
+                          controller: _customTaxRateController,
+                        ),
+                      },
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _calculate,
@@ -261,7 +300,7 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
-                if (_showResult && _resultPeriod != null) ...[
+                if (_showResult && _calculationResult != null) ...[
                   const SizedBox(height: 24),
                   Container(
                     key: _resultSectionKey,
@@ -310,7 +349,7 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
   }
 
   Widget _buildResultSection() {
-    if (_resultPeriod == null || _resultPeriod! <= 0) {
+    if (_calculationResult == null || !_calculationResult!.achievable) {
       return _buildErrorResult();
     }
 
@@ -319,6 +358,10 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
         _buildResultCard(),
         const SizedBox(height: 16),
         _buildDetailCard(),
+        if (_calculationResult!.monthlyResults.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildMonthlyProgressCard(),
+        ],
       ],
     );
   }
@@ -386,7 +429,7 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            CurrencyFormatter.formatPeriod(_resultPeriod!),
+            CurrencyFormatter.formatPeriod(_calculationResult!.requiredPeriod!),
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -459,7 +502,7 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '초기원금 ${CurrencyFormatter.formatWon(initialPrincipal)}을 ${_resultPeriod}개월간 예치하면 목표 달성이 가능합니다.',
+                    '초기원금 ${CurrencyFormatter.formatWon(initialPrincipal)}을 ${_calculationResult!.requiredPeriod}개월간 예치하면 목표 달성이 가능합니다.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppTheme.textSecondary,
                     ),
@@ -503,6 +546,211 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTaxTypeSelector() {
+    return Column(
+      children: TaxType.values.map((type) {
+        String title = '';
+        
+        switch (type) {
+          case TaxType.normal:
+            title = '일반과세 (15.4%)';
+            break;
+          case TaxType.noTax:
+            title = '비과세';
+            break;
+          case TaxType.custom:
+            title = '사용자 정의';
+            break;
+        }
+
+        return RadioListTile<TaxType>(
+          title: Text(title),
+          value: type,
+          groupValue: _taxType,
+          onChanged: (value) {
+            setState(() {
+              _taxType = value!;
+            });
+          },
+          activeColor: Colors.orange,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildMonthlyProgressCard() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '월별 진행 상황',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 300),
+            child: SingleChildScrollView(
+              child: Table(
+                border: TableBorder.all(color: AppTheme.borderColor),
+                columnWidths: const {
+                  0: FlexColumnWidth(1),
+                  1: FlexColumnWidth(2),
+                  2: FlexColumnWidth(2),
+                  3: FlexColumnWidth(2),
+                },
+                children: [
+                  TableRow(
+                    decoration: BoxDecoration(color: AppTheme.backgroundColor),
+                    children: [
+                      _buildProgressTableCell('개월', isHeader: true),
+                      _buildProgressTableCell('원금+이자', isHeader: true),
+                      _buildProgressTableCell('세금', isHeader: true),
+                      _buildProgressTableCell('세후금액', isHeader: true),
+                    ],
+                  ),
+                  ..._buildMonthlyResultRows(),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  color: Colors.orange,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${_calculationResult!.requiredPeriod}개월째에 목표금액 ${CurrencyFormatter.formatWon(_calculationResult!.targetAmount)}에 도달합니다.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<TableRow> _buildMonthlyResultRows() {
+    final results = <TableRow>[];
+    final monthlyResults = _calculationResult!.monthlyResults;
+    final requiredPeriod = _calculationResult!.requiredPeriod;
+
+    // Show key months: first few, around target achievement, and last few
+    Set<int> importantMonths = {};
+    
+    // Add first 3 months
+    for (int i = 0; i < 3 && i < monthlyResults.length; i++) {
+      importantMonths.add(i);
+    }
+    
+    // Add months around target achievement
+    if (requiredPeriod != null && requiredPeriod > 0) {
+      for (int i = requiredPeriod - 2; i <= requiredPeriod + 1; i++) {
+        if (i >= 0 && i < monthlyResults.length) {
+          importantMonths.add(i);
+        }
+      }
+    }
+    
+    // Add last 2 months
+    for (int i = monthlyResults.length - 2; i < monthlyResults.length; i++) {
+      if (i >= 0) {
+        importantMonths.add(i);
+      }
+    }
+
+    List<int> sortedMonths = importantMonths.toList()..sort();
+    
+    for (int i = 0; i < sortedMonths.length; i++) {
+      int monthIndex = sortedMonths[i];
+      final result = monthlyResults[monthIndex];
+      final isTargetMonth = requiredPeriod != null && result.period == requiredPeriod;
+      
+      results.add(
+        TableRow(
+          decoration: isTargetMonth 
+            ? BoxDecoration(color: Colors.orange.withValues(alpha: 0.1))
+            : null,
+          children: [
+            _buildProgressTableCell(
+              '${result.period}',
+              color: isTargetMonth ? Colors.orange : null,
+              fontWeight: isTargetMonth ? FontWeight.bold : null,
+            ),
+            _buildProgressTableCell(
+              CurrencyFormatter.formatWon(result.totalAmount),
+              color: isTargetMonth ? Colors.orange : null,
+              fontWeight: isTargetMonth ? FontWeight.bold : null,
+            ),
+            _buildProgressTableCell(
+              CurrencyFormatter.formatWon(result.tax),
+              color: isTargetMonth ? Colors.orange : null,
+              fontWeight: isTargetMonth ? FontWeight.bold : null,
+            ),
+            _buildProgressTableCell(
+              CurrencyFormatter.formatWon(result.afterTaxTotalAmount),
+              color: isTargetMonth ? Colors.orange : null,
+              fontWeight: isTargetMonth ? FontWeight.bold : null,
+            ),
+          ],
+        ),
+      );
+      
+      // Add separator if there's a gap
+      if (i < sortedMonths.length - 1 && sortedMonths[i + 1] - sortedMonths[i] > 1) {
+        results.add(
+          TableRow(
+            children: [
+              _buildProgressTableCell('⋮', isCenter: true),
+              _buildProgressTableCell('⋮', isCenter: true),
+              _buildProgressTableCell('⋮', isCenter: true),
+              _buildProgressTableCell('⋮', isCenter: true),
+            ],
+          ),
+        );
+      }
+    }
+
+    return results;
+  }
+
+  Widget _buildProgressTableCell(String text, {
+    bool isHeader = false, 
+    Color? color, 
+    FontWeight? fontWeight,
+    bool isCenter = false
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Text(
+        text,
+        textAlign: isCenter ? TextAlign.center : TextAlign.left,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: fontWeight ?? (isHeader ? FontWeight.w600 : FontWeight.normal),
+          color: color,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 }

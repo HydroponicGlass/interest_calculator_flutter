@@ -181,16 +181,109 @@ class InterestCalculator {
     required double interestRate,
     required InterestType interestType,
     required AccountType accountType,
+    TaxType taxType = TaxType.normal,
+    double customTaxRate = 0.0,
     double initialPrincipal = 0.0,
   }) {
     if (accountType == AccountType.savings) {
       if (initialPrincipal >= targetAmount) return 0;
       
-      switch (interestType) {
-        case InterestType.simple:
-          return ((targetAmount - initialPrincipal) / (initialPrincipal * interestRate / 100 / 12)).ceil();
-        case InterestType.compoundMonthly:
-          return (log(targetAmount / initialPrincipal) / log(1 + (interestRate / 100 / 12))).ceil();
+      // For tax calculations, we need to use an iterative approach
+      // because tax affects the final amount in a complex way
+      for (int months = 1; months <= 1200; months++) {
+        var input = InterestCalculationInput(
+          principal: initialPrincipal,
+          interestRate: interestRate,
+          periodMonths: months,
+          interestType: interestType,
+          accountType: accountType,
+          taxType: taxType,
+          customTaxRate: customTaxRate,
+          monthlyDeposit: 0,
+        );
+        
+        var result = calculateInterest(input);
+        if (result.finalAmount >= targetAmount) {
+          return months;
+        }
+      }
+      
+      return -1; // Calculation not possible within 100 years
+    } else {
+      for (int months = 1; months <= 1200; months++) {
+        var input = InterestCalculationInput(
+          principal: initialPrincipal,
+          interestRate: interestRate,
+          periodMonths: months,
+          interestType: interestType,
+          accountType: accountType,
+          taxType: taxType,
+          customTaxRate: customTaxRate,
+          monthlyDeposit: monthlyDeposit,
+        );
+        
+        var result = calculateInterest(input);
+        if (result.finalAmount >= targetAmount) {
+          return months;
+        }
+      }
+    }
+    return -1;
+  }
+
+  static PeriodCalculationResult calculateNeedPeriodForGoalWithDetails({
+    required double targetAmount,
+    required double monthlyDeposit,
+    required double interestRate,
+    required InterestType interestType,
+    required AccountType accountType,
+    TaxType taxType = TaxType.normal,
+    double customTaxRate = 0.0,
+    double initialPrincipal = 0.0,
+  }) {
+    List<PeriodResult> monthlyResults = [];
+    int? requiredPeriod;
+    bool achievable = false;
+
+    if (accountType == AccountType.savings) {
+      if (initialPrincipal >= targetAmount) {
+        return PeriodCalculationResult(
+          requiredPeriod: 0,
+          monthlyResults: [],
+          targetAmount: targetAmount,
+          initialPrincipal: initialPrincipal,
+          achievable: true,
+        );
+      }
+      
+      for (int months = 1; months <= 1200; months++) {
+        var input = InterestCalculationInput(
+          principal: initialPrincipal,
+          interestRate: interestRate,
+          periodMonths: months,
+          interestType: interestType,
+          accountType: accountType,
+          taxType: taxType,
+          customTaxRate: customTaxRate,
+          monthlyDeposit: 0,
+        );
+        
+        var result = calculateInterest(input);
+        
+        // Add the current month's result
+        if (result.periodResults.isNotEmpty) {
+          monthlyResults.add(result.periodResults.last);
+        }
+        
+        if (result.finalAmount >= targetAmount && requiredPeriod == null) {
+          requiredPeriod = months;
+          achievable = true;
+        }
+        
+        // Continue for a few more months to show progression
+        if (requiredPeriod != null && months >= requiredPeriod + 3) {
+          break;
+        }
       }
     } else {
       for (int months = 1; months <= 1200; months++) {
@@ -200,17 +293,37 @@ class InterestCalculator {
           periodMonths: months,
           interestType: interestType,
           accountType: accountType,
-          taxType: TaxType.noTax,
+          taxType: taxType,
+          customTaxRate: customTaxRate,
           monthlyDeposit: monthlyDeposit,
         );
         
         var result = calculateInterest(input);
-        if (result.totalAmount >= targetAmount) {
-          return months;
+        
+        // Add the current month's result
+        if (result.periodResults.isNotEmpty) {
+          monthlyResults.add(result.periodResults.last);
+        }
+        
+        if (result.finalAmount >= targetAmount && requiredPeriod == null) {
+          requiredPeriod = months;
+          achievable = true;
+        }
+        
+        // Continue for a few more months to show progression
+        if (requiredPeriod != null && months >= requiredPeriod + 3) {
+          break;
         }
       }
     }
-    return -1;
+
+    return PeriodCalculationResult(
+      requiredPeriod: requiredPeriod,
+      monthlyResults: monthlyResults,
+      targetAmount: targetAmount,
+      initialPrincipal: initialPrincipal,
+      achievable: achievable,
+    );
   }
 
   static double calculateNeedAmountForGoal({
