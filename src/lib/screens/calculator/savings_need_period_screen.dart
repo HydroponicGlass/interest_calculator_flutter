@@ -603,13 +603,15 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
                   1: FlexColumnWidth(2),
                   2: FlexColumnWidth(2),
                   3: FlexColumnWidth(2),
+                  4: FlexColumnWidth(2),
                 },
                 children: [
                   TableRow(
                     decoration: BoxDecoration(color: AppTheme.backgroundColor),
                     children: [
                       _buildProgressTableCell('개월', isHeader: true),
-                      _buildProgressTableCell('원금+이자', isHeader: true),
+                      _buildProgressTableCell('원금', isHeader: true),
+                      _buildProgressTableCell('이자수익', isHeader: true),
                       _buildProgressTableCell('세금', isHeader: true),
                       _buildProgressTableCell('세후금액', isHeader: true),
                     ],
@@ -698,7 +700,12 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
               fontWeight: isTargetMonth ? FontWeight.bold : null,
             ),
             _buildProgressTableCell(
-              CurrencyFormatter.formatWon(result.totalAmount),
+              CurrencyFormatter.formatWon(result.principal),
+              color: isTargetMonth ? Colors.orange : null,
+              fontWeight: isTargetMonth ? FontWeight.bold : null,
+            ),
+            _buildProgressTableCell(
+              CurrencyFormatter.formatWon(result.cumulativeInterest),
               color: isTargetMonth ? Colors.orange : null,
               fontWeight: isTargetMonth ? FontWeight.bold : null,
             ),
@@ -721,6 +728,7 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
         results.add(
           TableRow(
             children: [
+              _buildProgressTableCell('⋮', isCenter: true),
               _buildProgressTableCell('⋮', isCenter: true),
               _buildProgressTableCell('⋮', isCenter: true),
               _buildProgressTableCell('⋮', isCenter: true),
