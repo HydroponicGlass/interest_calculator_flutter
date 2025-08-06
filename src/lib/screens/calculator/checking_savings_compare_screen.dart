@@ -3,6 +3,7 @@ import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
+import '../../widgets/quick_input_buttons.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
 import '../../services/calculation_history_service.dart';
@@ -154,6 +155,26 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
           formContext.visitChildElements(findFirstErrorField);
         }
       }
+    });
+  }
+
+  void _resetForm() {
+    setState(() {
+      _checkingAmountController.clear();
+      _checkingInterestRateController.clear();
+      _checkingPeriodController.clear();
+      _checkingCustomTaxRateController.clear();
+      _savingsAmountController.clear();
+      _savingsInterestRateController.clear();
+      _savingsPeriodController.clear();
+      _savingsCustomTaxRateController.clear();
+      _checkingInterestType = InterestType.compoundMonthly;
+      _checkingTaxType = TaxType.normal;
+      _savingsInterestType = InterestType.compoundMonthly;
+      _savingsTaxType = TaxType.normal;
+      _checkingResult = null;
+      _savingsResult = null;
+      _showResult = false;
     });
   }
 
@@ -402,19 +423,47 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
                 _buildSavingsSection(),
                 
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _calculate,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _resetForm,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: const BorderSide(color: Colors.deepOrange),
+                        ),
+                        child: const Text(
+                          '초기화',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.deepOrange,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    '적금 vs 예금 비교하기',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: _calculate,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepOrange,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          '적금 vs 예금 비교하기',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 
                 if (_showResult && _checkingResult != null && _savingsResult != null) ...[
@@ -699,9 +748,10 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
             ],
           ),
           const SizedBox(height: 20),
-          CurrencyInputField(
-            label: '월 납입금액',
+          QuickInputButtons(
             controller: _checkingAmountController,
+            labelText: '월 납입금액',
+            values: QuickInputConstants.amountValues,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '월 납입금액을 입력해주세요';
@@ -710,9 +760,10 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
             },
           ),
           const SizedBox(height: 16),
-          PercentInputField(
-            label: '연 이자율',
+          QuickInputButtons(
             controller: _checkingInterestRateController,
+            labelText: '연 이자율',
+            values: QuickInputConstants.interestRateValues,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '연 이자율을 입력해주세요';
@@ -721,16 +772,16 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
             },
           ),
           const SizedBox(height: 16),
-          PeriodInputField(
-            label: '기간',
+          QuickInputButtons(
             controller: _checkingPeriodController,
+            labelText: '기간',
+            values: QuickInputConstants.periodValues,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '기간을 입력해주세요';
               }
               return null;
             },
-            onChanged: (value) {},
           ),
           const SizedBox(height: 16),
           Text(
@@ -796,9 +847,10 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
             ],
           ),
           const SizedBox(height: 20),
-          CurrencyInputField(
-            label: '예치금액',
+          QuickInputButtons(
             controller: _savingsAmountController,
+            labelText: '예치금액',
+            values: QuickInputConstants.amountValues,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '예치금액을 입력해주세요';
@@ -807,9 +859,10 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
             },
           ),
           const SizedBox(height: 16),
-          PercentInputField(
-            label: '연 이자율',
+          QuickInputButtons(
             controller: _savingsInterestRateController,
+            labelText: '연 이자율',
+            values: QuickInputConstants.interestRateValues,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '연 이자율을 입력해주세요';
@@ -818,16 +871,16 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
             },
           ),
           const SizedBox(height: 16),
-          PeriodInputField(
-            label: '기간',
+          QuickInputButtons(
             controller: _savingsPeriodController,
+            labelText: '기간',
+            values: QuickInputConstants.periodValues,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '기간을 입력해주세요';
               }
               return null;
             },
-            onChanged: (value) {},
           ),
           const SizedBox(height: 16),
           Text(

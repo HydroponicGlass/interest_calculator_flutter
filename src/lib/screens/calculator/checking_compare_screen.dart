@@ -153,6 +153,26 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
     });
   }
 
+  void _resetForm() {
+    setState(() {
+      _monthlyDepositAController.clear();
+      _interestRateAController.clear();
+      _periodAController.clear();
+      _monthlyDepositBController.clear();
+      _interestRateBController.clear();
+      _periodBController.clear();
+      _customTaxRateAController.clear();
+      _customTaxRateBController.clear();
+      _interestTypeA = InterestType.compoundMonthly;
+      _interestTypeB = InterestType.compoundMonthly;
+      _taxTypeA = TaxType.normal;
+      _taxTypeB = TaxType.normal;
+      _resultA = null;
+      _resultB = null;
+      _showResult = false;
+    });
+  }
+
   void _calculate() async {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
@@ -367,19 +387,47 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
                 ),
                 
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _calculate,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _resetForm,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: const BorderSide(color: Colors.teal),
+                        ),
+                        child: const Text(
+                          '초기화',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.teal,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    '비교 분석하기',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: _calculate,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          '비교 분석하기',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 
                 if (_showResult && _resultA != null && _resultB != null) ...[
@@ -434,9 +482,10 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          CurrencyInputField(
-            label: '월 납입금액',
+          QuickInputButtons(
             controller: monthlyController,
+            labelText: '월 납입금액',
+            values: QuickInputConstants.amountValues,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '월 납입금액을 입력해주세요';
@@ -445,9 +494,10 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
             },
           ),
           const SizedBox(height: 16),
-          PercentInputField(
-            label: '연 이자율',
+          QuickInputButtons(
             controller: rateController,
+            labelText: '연 이자율',
+            values: QuickInputConstants.interestRateValues,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '연 이자율을 입력해주세요';
@@ -456,17 +506,15 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
             },
           ),
           const SizedBox(height: 16),
-          PeriodInputField(
-            label: '가입기간',
+          QuickInputButtons(
             controller: periodController,
+            labelText: '가입기간',
+            values: QuickInputConstants.periodValues,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return '가입기간을 입력해주세요';
               }
               return null;
-            },
-            onChanged: (value) {
-              // Handle period change if needed
             },
           ),
           const SizedBox(height: 16),

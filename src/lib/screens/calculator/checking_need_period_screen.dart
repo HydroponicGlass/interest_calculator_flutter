@@ -3,6 +3,7 @@ import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
+import '../../widgets/quick_input_buttons.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
 import '../../services/calculation_history_service.dart';
@@ -102,6 +103,19 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
           formContext.visitChildElements(findFirstErrorField);
         }
       }
+    });
+  }
+
+  void _resetForm() {
+    setState(() {
+      _targetAmountController.clear();
+      _monthlyDepositController.clear();
+      _interestRateController.clear();
+      _customTaxRateController.clear();
+      _interestType = InterestType.compoundMonthly;
+      _taxType = TaxType.normal;
+      _calculationResult = null;
+      _showResult = false;
     });
   }
 
@@ -210,9 +224,10 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      CurrencyInputField(
-                        label: '목표 금액',
+                      QuickInputButtons(
                         controller: _targetAmountController,
+                        labelText: '목표 금액',
+                        values: QuickInputConstants.amountValues,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '목표 금액을 입력해주세요';
@@ -221,9 +236,10 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      CurrencyInputField(
-                        label: '월 납입금액',
+                      QuickInputButtons(
                         controller: _monthlyDepositController,
+                        labelText: '월 납입금액',
+                        values: QuickInputConstants.amountValues,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '월 납입금액을 입력해주세요';
@@ -232,9 +248,10 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      PercentInputField(
-                        label: '연 이자율',
+                      QuickInputButtons(
                         controller: _interestRateController,
+                        labelText: '연 이자율',
+                        values: QuickInputConstants.interestRateValues,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '연 이자율을 입력해주세요';
@@ -285,19 +302,47 @@ class _CheckingNeedPeriodScreenState extends State<CheckingNeedPeriodScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _calculate,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accentColor,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _resetForm,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(color: AppTheme.accentColor),
+                        ),
+                        child: Text(
+                          '초기화',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.accentColor,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    '필요기간 계산하기',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: _calculate,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.accentColor,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          '필요기간 계산하기',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 if (_showResult && _calculationResult != null) ...[
                   const SizedBox(height: 24),

@@ -117,6 +117,20 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
     });
   }
 
+  void _resetForm() {
+    setState(() {
+      _principalController.clear();
+      _interestRateController.clear();
+      _periodController.clear();
+      _customTaxRateController.clear();
+      _interestType = InterestType.compoundMonthly;
+      _taxType = TaxType.normal;
+      _result = null;
+      _additionalInfo = null;
+      _showResult = false;
+    });
+  }
+
   void _calculate() async {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
@@ -299,19 +313,47 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _calculate,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.secondaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _resetForm,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(color: AppTheme.secondaryColor),
+                        ),
+                        child: Text(
+                          '초기화',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.secondaryColor,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    '계산하기',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: _calculate,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.secondaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          '계산하기',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 if (_showResult && _result != null) ...[
                   const SizedBox(height: 24),

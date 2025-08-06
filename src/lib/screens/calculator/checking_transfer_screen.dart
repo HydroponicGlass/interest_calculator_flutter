@@ -3,6 +3,7 @@ import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
+import '../../widgets/quick_input_buttons.dart';
 import '../../widgets/interest_rate_input_field.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
@@ -141,6 +142,26 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
           formContext.visitChildElements(findFirstErrorField);
         }
       }
+    });
+  }
+
+  void _resetForm() {
+    setState(() {
+      _amountController.clear();
+      _initialPeriodController.clear();
+      _elapsedPeriodController.clear();
+      _currentInterestRateController.clear();
+      _cancellationInterestRateController.clear();
+      _newInterestRateController.clear();
+      _customTaxRateController.clear();
+      _currentInterestType = InterestType.compoundMonthly;
+      _cancellationInterestType = InterestType.simple;
+      _newInterestType = InterestType.compoundMonthly;
+      _taxType = TaxType.normal;
+      _keepCurrentResult = null;
+      _transferResult = null;
+      _elapsedResult = null;
+      _showResult = false;
     });
   }
 
@@ -359,9 +380,10 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      CurrencyInputField(
-                        label: '예금 금액',
+                      QuickInputButtons(
                         controller: _amountController,
+                        labelText: '예금 금액',
+                        values: QuickInputConstants.amountValues,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '예금 금액을 입력해주세요';
@@ -370,9 +392,10 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      PeriodInputField(
-                        label: '초기 예치 기간',
+                      QuickInputButtons(
                         controller: _initialPeriodController,
+                        labelText: '초기 예치 기간',
+                        values: QuickInputConstants.periodValues,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '초기 예치 기간을 입력해주세요';
@@ -381,9 +404,10 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      PeriodInputField(
-                        label: '현재까지 경과 기간',
+                      QuickInputButtons(
                         controller: _elapsedPeriodController,
+                        labelText: '현재까지 경과 기간',
+                        values: QuickInputConstants.periodValues,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '경과 기간을 입력해주세요';
@@ -505,19 +529,47 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _calculate,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.brown,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _resetForm,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: const BorderSide(color: Colors.brown),
+                        ),
+                        child: const Text(
+                          '초기화',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.brown,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    '이관 분석하기',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: _calculate,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.brown,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          '이관 분석하기',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 
                 if (_showResult && _keepCurrentResult != null && _transferResult != null && _elapsedResult != null) ...[
