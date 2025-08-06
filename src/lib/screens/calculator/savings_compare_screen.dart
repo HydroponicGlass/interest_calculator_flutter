@@ -40,9 +40,13 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
   final _principalBController = TextEditingController();
   final _interestRateBController = TextEditingController();
   final _periodBController = TextEditingController();
+  final _customTaxRateAController = TextEditingController();
+  final _customTaxRateBController = TextEditingController();
 
   InterestType _interestTypeA = InterestType.compoundMonthly;
   InterestType _interestTypeB = InterestType.compoundMonthly;
+  TaxType _taxTypeA = TaxType.normal;
+  TaxType _taxTypeB = TaxType.normal;
   
   InterestCalculationResult? _resultA;
   InterestCalculationResult? _resultB;
@@ -63,6 +67,8 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
     _principalBController.dispose();
     _interestRateBController.dispose();
     _periodBController.dispose();
+    _customTaxRateAController.dispose();
+    _customTaxRateBController.dispose();
     super.dispose();
   }
 
@@ -83,6 +89,12 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
         if (lastInput['interestTypeA'] != null) {
           _interestTypeA = InterestType.values[lastInput['interestTypeA']];
         }
+        if (lastInput['customTaxRateA'] != null && lastInput['customTaxRateA'] > 0) {
+          _customTaxRateAController.text = lastInput['customTaxRateA'].toString();
+        }
+        if (lastInput['taxTypeA'] != null) {
+          _taxTypeA = TaxType.values[lastInput['taxTypeA']];
+        }
 
         // Product B
         if (lastInput['principalB'] != null && lastInput['principalB'] > 0) {
@@ -96,6 +108,12 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
         }
         if (lastInput['interestTypeB'] != null) {
           _interestTypeB = InterestType.values[lastInput['interestTypeB']];
+        }
+        if (lastInput['customTaxRateB'] != null && lastInput['customTaxRateB'] > 0) {
+          _customTaxRateBController.text = lastInput['customTaxRateB'].toString();
+        }
+        if (lastInput['taxTypeB'] != null) {
+          _taxTypeB = TaxType.values[lastInput['taxTypeB']];
         }
       });
     }
@@ -149,15 +167,23 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
     final principalB = CurrencyFormatter.parseWon(_principalBController.text);
     final interestRateB = CurrencyFormatter.parsePercent(_interestRateBController.text);
     final periodB = CurrencyFormatter.parseNumber(_periodBController.text).toInt();
+    final customTaxRateA = _taxTypeA == TaxType.custom 
+        ? CurrencyFormatter.parsePercent(_customTaxRateAController.text)
+        : 0.0;
+    final customTaxRateB = _taxTypeB == TaxType.custom 
+        ? CurrencyFormatter.parsePercent(_customTaxRateBController.text)
+        : 0.0;
 
     // Log input values for both products
     _logger.i('📊 [A 상품 입력값] 원금: ${CurrencyFormatter.formatWon(principalA)}, '
         '이자율: ${interestRateA.toStringAsFixed(2)}%, 예치기간: ${periodA}개월, '
-        '계산방식: ${_interestTypeA == InterestType.simple ? "단리" : "월복리"}');
+        '계산방식: ${_interestTypeA == InterestType.simple ? "단리" : "월복리"}, '
+        '세금유형: $_taxTypeA ${_taxTypeA == TaxType.custom ? '($customTaxRateA%)' : ''}');
     
     _logger.i('📊 [B 상품 입력값] 원금: ${CurrencyFormatter.formatWon(principalB)}, '
         '이자율: ${interestRateB.toStringAsFixed(2)}%, 예치기간: ${periodB}개월, '
-        '계산방식: ${_interestTypeB == InterestType.simple ? "단리" : "월복리"}');
+        '계산방식: ${_interestTypeB == InterestType.simple ? "단리" : "월복리"}, '
+        '세금유형: $_taxTypeB ${_taxTypeB == TaxType.custom ? '($customTaxRateB%)' : ''}');
 
     final inputA = InterestCalculationInput(
       principal: principalA,
@@ -165,7 +191,8 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
       periodMonths: periodA,
       interestType: _interestTypeA,
       accountType: AccountType.savings,
-      taxType: TaxType.normal,
+      taxType: _taxTypeA,
+      customTaxRate: customTaxRateA,
       monthlyDeposit: 0,
     );
     
@@ -175,7 +202,8 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
       periodMonths: periodB,
       interestType: _interestTypeB,
       accountType: AccountType.savings,
-      taxType: TaxType.normal,
+      taxType: _taxTypeB,
+      customTaxRate: customTaxRateB,
       monthlyDeposit: 0,
     );
 
@@ -194,15 +222,10 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
         '세금: ${CurrencyFormatter.formatWon(resultB.taxAmount)}, '
         '세후수령액: ${CurrencyFormatter.formatWon(resultB.finalAmount)}');
 
-    // Log comparison results with effective rates
-    final effectiveRateA = (resultA.totalInterest / principalA) / (periodA / 12) * 100;
-    final effectiveRateB = (resultB.totalInterest / principalB) / (periodB / 12) * 100;
-    
+    // Log comparison results
     final betterOption = resultA.finalAmount > resultB.finalAmount ? 'A' : 'B';
     final difference = (resultA.finalAmount - resultB.finalAmount).abs();
     final profitDiffPercent = (difference / (resultA.finalAmount < resultB.finalAmount ? resultA.finalAmount : resultB.finalAmount) * 100);
-    
-    _logger.i('📈 [실질 수익률] A 상품: ${effectiveRateA.toStringAsFixed(2)}%, B 상품: ${effectiveRateB.toStringAsFixed(2)}%');
     
     _logger.i('🏆 [비교 결과] $betterOption 상품이 유리함! '
         '차이: ${CurrencyFormatter.formatWon(difference)} (${profitDiffPercent.toStringAsFixed(2)}% 더 유리)');
@@ -213,10 +236,14 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
       'interestRateA': interestRateA,
       'periodA': periodA,
       'interestTypeA': _interestTypeA.index,
+      'taxTypeA': _taxTypeA.index,
+      'customTaxRateA': customTaxRateA,
       'principalB': principalB,
       'interestRateB': interestRateB,
       'periodB': periodB,
       'interestTypeB': _interestTypeB.index,
+      'taxTypeB': _taxTypeB.index,
+      'customTaxRateB': customTaxRateB,
     };
     await CalculationHistoryService.saveLastSavingsCompareInput(compareData);
 
@@ -292,6 +319,9 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
                   _periodAController,
                   _interestTypeA,
                   (value) => setState(() => _interestTypeA = value!),
+                  _taxTypeA,
+                  (value) => setState(() => _taxTypeA = value!),
+                  _customTaxRateAController,
                 ),
                 
                 const SizedBox(height: 24),
@@ -330,6 +360,9 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
                   _periodBController,
                   _interestTypeB,
                   (value) => setState(() => _interestTypeB = value!),
+                  _taxTypeB,
+                  (value) => setState(() => _taxTypeB = value!),
+                  _customTaxRateBController,
                 ),
                 
                 const SizedBox(height: 24),
@@ -371,6 +404,9 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
     TextEditingController periodController,
     InterestType interestType,
     Function(InterestType?) onInterestTypeChanged,
+    TaxType taxType,
+    Function(TaxType?) onTaxTypeChanged,
+    TextEditingController customTaxRateController,
   ) {
     return CustomCard(
       child: Column(
@@ -441,6 +477,22 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
           ),
           const SizedBox(height: 8),
           _buildInterestTypeSelector(interestType, onInterestTypeChanged, color),
+          const SizedBox(height: 16),
+          Text(
+            '세금 설정',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildTaxTypeSelector(taxType, onTaxTypeChanged, color),
+          if (taxType == TaxType.custom) ...[
+            const SizedBox(height: 12),
+            PercentInputField(
+              label: '사용자 정의 세율',
+              controller: customTaxRateController,
+            ),
+          ],
         ],
       ),
     );
@@ -464,6 +516,38 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
         }
 
         return RadioListTile<InterestType>(
+          dense: true,
+          title: Text(title, style: const TextStyle(fontSize: 14)),
+          value: type,
+          groupValue: currentType,
+          onChanged: onChanged,
+          activeColor: accentColor,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTaxTypeSelector(
+    TaxType currentType,
+    Function(TaxType?) onChanged,
+    Color accentColor,
+  ) {
+    return Column(
+      children: TaxType.values.map((type) {
+        String title = '';
+        switch (type) {
+          case TaxType.normal:
+            title = '일반과세 (15.4%)';
+            break;
+          case TaxType.noTax:
+            title = '비과세';
+            break;
+          case TaxType.custom:
+            title = '사용자 정의';
+            break;
+        }
+
+        return RadioListTile<TaxType>(
           dense: true,
           title: Text(title, style: const TextStyle(fontSize: 14)),
           value: type,
@@ -660,6 +744,13 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
               ),
               TableRow(
                 children: [
+                  _buildTableCell('세금유형'),
+                  _buildTableCell(_getTaxTypeDisplayText(_taxTypeA)),
+                  _buildTableCell(_getTaxTypeDisplayText(_taxTypeB)),
+                ],
+              ),
+              TableRow(
+                children: [
                   _buildTableCell('이자수익'),
                   _buildTableCell(CurrencyFormatter.formatWon(_resultA!.totalInterest)),
                   _buildTableCell(CurrencyFormatter.formatWon(_resultB!.totalInterest)),
@@ -690,69 +781,11 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildEffectiveRateComparison(),
         ],
       ),
     );
   }
 
-  Widget _buildEffectiveRateComparison() {
-    final principalA = CurrencyFormatter.parseWon(_principalAController.text);
-    final principalB = CurrencyFormatter.parseWon(_principalBController.text);
-    final periodA = CurrencyFormatter.parseNumber(_periodAController.text).toInt();
-    final periodB = CurrencyFormatter.parseNumber(_periodBController.text).toInt();
-    
-    final effectiveRateA = (_resultA!.totalInterest / principalA) / (periodA / 12) * 100;
-    final effectiveRateB = (_resultB!.totalInterest / principalB) / (periodB / 12) * 100;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '실질 수익률 비교',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('A 상품 실질 수익률: ', style: Theme.of(context).textTheme.bodySmall),
-              Text(
-                '${effectiveRateA.toStringAsFixed(2)}%',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('B 상품 실질 수익률: ', style: Theme.of(context).textTheme.bodySmall),
-              Text(
-                '${effectiveRateB.toStringAsFixed(2)}%',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.red,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTableCell(String text, {bool isHeader = false, Color? color}) {
     return Padding(
@@ -766,5 +799,19 @@ class _SavingsCompareScreenState extends State<SavingsCompareScreen> {
         ),
       ),
     );
+  }
+
+  String _getTaxTypeDisplayText(TaxType taxType) {
+    switch (taxType) {
+      case TaxType.normal:
+        return '일반과세 (15.4%)';
+      case TaxType.noTax:
+        return '비과세';
+      case TaxType.custom:
+        final customRate = taxType == _taxTypeA 
+            ? _customTaxRateAController.text
+            : _customTaxRateBController.text;
+        return '사용자 정의 ($customRate%)';
+    }
   }
 }
