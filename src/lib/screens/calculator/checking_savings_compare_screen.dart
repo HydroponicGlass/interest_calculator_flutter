@@ -31,11 +31,25 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
     ),
   );
   
-  final _amountController = TextEditingController();
-  final _interestRateController = TextEditingController();
-  final _periodController = TextEditingController();
+  // 적금 관련 컨트롤러
+  final _checkingAmountController = TextEditingController(); // 적금 월납입금액
+  final _checkingInterestRateController = TextEditingController(); // 적금 연 이자율
+  final _checkingPeriodController = TextEditingController(); // 적금 기간
+  final _checkingCustomTaxRateController = TextEditingController(); // 적금 사용자 정의 세율
 
-  InterestType _interestType = InterestType.compoundMonthly;
+  // 예금 관련 컨트롤러
+  final _savingsAmountController = TextEditingController(); // 예금 예치금액
+  final _savingsInterestRateController = TextEditingController(); // 예금 연 이자율
+  final _savingsPeriodController = TextEditingController(); // 예금 기간
+  final _savingsCustomTaxRateController = TextEditingController(); // 예금 사용자 정의 세율
+
+  // 적금 설정
+  InterestType _checkingInterestType = InterestType.compoundMonthly;
+  TaxType _checkingTaxType = TaxType.normal;
+  
+  // 예금 설정
+  InterestType _savingsInterestType = InterestType.compoundMonthly;
+  TaxType _savingsTaxType = TaxType.normal;
   
   InterestCalculationResult? _checkingResult;
   InterestCalculationResult? _savingsResult;
@@ -50,9 +64,16 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
   @override
   void dispose() {
     _scrollController.dispose();
-    _amountController.dispose();
-    _interestRateController.dispose();
-    _periodController.dispose();
+    // 적금 컨트롤러 dispose
+    _checkingAmountController.dispose();
+    _checkingInterestRateController.dispose();
+    _checkingPeriodController.dispose();
+    _checkingCustomTaxRateController.dispose();
+    // 예금 컨트롤러 dispose
+    _savingsAmountController.dispose();
+    _savingsInterestRateController.dispose();
+    _savingsPeriodController.dispose();
+    _savingsCustomTaxRateController.dispose();
     super.dispose();
   }
 
@@ -60,17 +81,44 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
     final lastInput = await CalculationHistoryService.getLastCheckingSavingsCompareInput();
     if (lastInput != null && mounted) {
       setState(() {
-        if (lastInput['amount'] != null && lastInput['amount'] > 0) {
-          _amountController.text = CurrencyFormatter.formatWonInput(lastInput['amount']);
+        // 적금 데이터 로드
+        if (lastInput['checkingAmount'] != null && lastInput['checkingAmount'] > 0) {
+          _checkingAmountController.text = CurrencyFormatter.formatWonInput(lastInput['checkingAmount']);
         }
-        if (lastInput['interestRate'] != null && lastInput['interestRate'] > 0) {
-          _interestRateController.text = lastInput['interestRate'].toString();
+        if (lastInput['checkingInterestRate'] != null && lastInput['checkingInterestRate'] > 0) {
+          _checkingInterestRateController.text = lastInput['checkingInterestRate'].toString();
         }
-        if (lastInput['period'] != null && lastInput['period'] > 0) {
-          _periodController.text = lastInput['period'].toString();
+        if (lastInput['checkingPeriod'] != null && lastInput['checkingPeriod'] > 0) {
+          _checkingPeriodController.text = lastInput['checkingPeriod'].toString();
         }
-        if (lastInput['interestType'] != null) {
-          _interestType = InterestType.values[lastInput['interestType']];
+        if (lastInput['checkingInterestType'] != null) {
+          _checkingInterestType = InterestType.values[lastInput['checkingInterestType']];
+        }
+        if (lastInput['checkingTaxType'] != null) {
+          _checkingTaxType = TaxType.values[lastInput['checkingTaxType']];
+        }
+        if (lastInput['checkingCustomTaxRate'] != null && lastInput['checkingCustomTaxRate'] > 0) {
+          _checkingCustomTaxRateController.text = lastInput['checkingCustomTaxRate'].toString();
+        }
+        
+        // 예금 데이터 로드
+        if (lastInput['savingsAmount'] != null && lastInput['savingsAmount'] > 0) {
+          _savingsAmountController.text = CurrencyFormatter.formatWonInput(lastInput['savingsAmount']);
+        }
+        if (lastInput['savingsInterestRate'] != null && lastInput['savingsInterestRate'] > 0) {
+          _savingsInterestRateController.text = lastInput['savingsInterestRate'].toString();
+        }
+        if (lastInput['savingsPeriod'] != null && lastInput['savingsPeriod'] > 0) {
+          _savingsPeriodController.text = lastInput['savingsPeriod'].toString();
+        }
+        if (lastInput['savingsInterestType'] != null) {
+          _savingsInterestType = InterestType.values[lastInput['savingsInterestType']];
+        }
+        if (lastInput['savingsTaxType'] != null) {
+          _savingsTaxType = TaxType.values[lastInput['savingsTaxType']];
+        }
+        if (lastInput['savingsCustomTaxRate'] != null && lastInput['savingsCustomTaxRate'] > 0) {
+          _savingsCustomTaxRateController.text = lastInput['savingsCustomTaxRate'].toString();
         }
       });
     }
@@ -117,37 +165,54 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
 
     _logger.i('⚔️ [적금 vs 예금 비교] 계산 시작');
 
-    final amount = CurrencyFormatter.parseWon(_amountController.text);
-    final interestRate = CurrencyFormatter.parsePercent(_interestRateController.text);
-    final period = CurrencyFormatter.parseNumber(_periodController.text).toInt();
+    // 적금 입력값 파싱
+    final checkingAmount = CurrencyFormatter.parseWon(_checkingAmountController.text);
+    final checkingInterestRate = CurrencyFormatter.parsePercent(_checkingInterestRateController.text);
+    final checkingPeriod = CurrencyFormatter.parseNumber(_checkingPeriodController.text).toInt();
+    final checkingCustomTaxRate = _checkingTaxType == TaxType.custom 
+        ? CurrencyFormatter.parsePercent(_checkingCustomTaxRateController.text)
+        : 0.0;
+    
+    // 예금 입력값 파싱
+    final savingsAmount = CurrencyFormatter.parseWon(_savingsAmountController.text);
+    final savingsInterestRate = CurrencyFormatter.parsePercent(_savingsInterestRateController.text);
+    final savingsPeriod = CurrencyFormatter.parseNumber(_savingsPeriodController.text).toInt();
+    final savingsCustomTaxRate = _savingsTaxType == TaxType.custom 
+        ? CurrencyFormatter.parsePercent(_savingsCustomTaxRateController.text)
+        : 0.0;
 
     // Log input values
-    _logger.i('📊 [입력값] 금액: ${CurrencyFormatter.formatWon(amount)}, '
-        '이자율: ${interestRate.toStringAsFixed(2)}%, 기간: ${period}개월, '
-        '계산방식: ${_interestType == InterestType.simple ? "단리" : "월복리"}');
+    _logger.i('📊 [적금 입력값] 금액: ${CurrencyFormatter.formatWon(checkingAmount)}, '
+        '이자율: ${checkingInterestRate.toStringAsFixed(2)}%, 기간: ${checkingPeriod}개월, '
+        '계산방식: ${_checkingInterestType == InterestType.simple ? "단리" : "월복리"}, '
+        '세금유형: $_checkingTaxType ${_checkingTaxType == TaxType.custom ? '($checkingCustomTaxRate%)' : ''}');
     
-    _logger.i('💰 [비교 조건] 적금: 매월 ${CurrencyFormatter.formatWon(amount)} 납입 vs '
-        '예금: 전체 ${CurrencyFormatter.formatWon(amount * period)} 일시예치');
+    _logger.i('📊 [예금 입력값] 금액: ${CurrencyFormatter.formatWon(savingsAmount)}, '
+        '이자율: ${savingsInterestRate.toStringAsFixed(2)}%, 기간: ${savingsPeriod}개월, '
+        '계산방식: ${_savingsInterestType == InterestType.simple ? "단리" : "월복리"}, '
+        '세금유형: $_savingsTaxType ${_savingsTaxType == TaxType.custom ? '($savingsCustomTaxRate%)' : ''}');
 
     // Calculate for checking account (monthly deposits)
     final checkingInput = InterestCalculationInput(
       principal: 0,
-      interestRate: interestRate,
-      periodMonths: period,
-      interestType: _interestType,
+      interestRate: checkingInterestRate,
+      periodMonths: checkingPeriod,
+      interestType: _checkingInterestType,
       accountType: AccountType.checking,
-      taxType: TaxType.normal,
-      monthlyDeposit: amount,
+      taxType: _checkingTaxType,
+      customTaxRate: checkingCustomTaxRate,
+      monthlyDeposit: checkingAmount,
     );
     
     // Calculate for savings account (lump sum)
     final savingsInput = InterestCalculationInput(
-      principal: amount * period, // Total amount as lump sum
-      interestRate: interestRate,
-      periodMonths: period,
-      interestType: _interestType,
+      principal: savingsAmount,
+      interestRate: savingsInterestRate,
+      periodMonths: savingsPeriod,
+      interestType: _savingsInterestType,
       accountType: AccountType.savings,
-      taxType: TaxType.normal,
+      taxType: _savingsTaxType,
+      customTaxRate: savingsCustomTaxRate,
       monthlyDeposit: 0,
     );
 
@@ -156,12 +221,12 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
     final savingsResult = InterestCalculator.calculateInterest(savingsInput);
 
     // Log calculation results
-    _logger.i('🧮 [적금 계산결과] 총납입: ${CurrencyFormatter.formatWon(amount * period)}, '
+    _logger.i('🧮 [적금 계산결과] 총납입: ${CurrencyFormatter.formatWon(checkingAmount * checkingPeriod)}, '
         '이자수익: ${CurrencyFormatter.formatWon(checkingResult.totalInterest)}, '
         '세금: ${CurrencyFormatter.formatWon(checkingResult.taxAmount)}, '
         '세후수령액: ${CurrencyFormatter.formatWon(checkingResult.finalAmount)}');
     
-    _logger.i('🧮 [예금 계산결과] 원금: ${CurrencyFormatter.formatWon(amount * period)}, '
+    _logger.i('🧮 [예금 계산결과] 원금: ${CurrencyFormatter.formatWon(savingsAmount)}, '
         '이자수익: ${CurrencyFormatter.formatWon(savingsResult.totalInterest)}, '
         '세금: ${CurrencyFormatter.formatWon(savingsResult.taxAmount)}, '
         '세후수령액: ${CurrencyFormatter.formatWon(savingsResult.finalAmount)}');
@@ -183,10 +248,20 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
 
     // Save the inputs for next time
     final inputData = {
-      'amount': amount,
-      'interestRate': interestRate,
-      'period': period,
-      'interestType': _interestType.index,
+      // 적금 데이터
+      'checkingAmount': checkingAmount,
+      'checkingInterestRate': checkingInterestRate,
+      'checkingPeriod': checkingPeriod,
+      'checkingInterestType': _checkingInterestType.index,
+      'checkingTaxType': _checkingTaxType.index,
+      'checkingCustomTaxRate': checkingCustomTaxRate,
+      // 예금 데이터
+      'savingsAmount': savingsAmount,
+      'savingsInterestRate': savingsInterestRate,
+      'savingsPeriod': savingsPeriod,
+      'savingsInterestType': _savingsInterestType.index,
+      'savingsTaxType': _savingsTaxType.index,
+      'savingsCustomTaxRate': savingsCustomTaxRate,
     };
     await CalculationHistoryService.saveLastCheckingSavingsCompareInput(inputData);
 
@@ -282,60 +357,50 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
                         ),
                       ),
                       const SizedBox(height: 24),
-                      CurrencyInputField(
-                        label: '월 납입금액 (적금) / 총 예치금액 기준',
-                        controller: _amountController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return '금액을 입력해주세요';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      PercentInputField(
-                        label: '연 이자율',
-                        controller: _interestRateController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return '연 이자율을 입력해주세요';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      PeriodInputField(
-                        label: '기간',
-                        controller: _periodController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return '기간을 입력해주세요';
-                          }
-                          return null;
-                        },
-                        onChanged: (value) {
-                          // Handle period change if needed
-                        },
+                      Text(
+                        '각 상품의 조건을 별도로 입력하여 비교하세요',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                CustomCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '이자 계산 방식',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+                
+                // 적금 섹션
+                _buildCheckingSection(),
+                
+                const SizedBox(height: 24),
+                
+                // VS Divider
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.deepOrange,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'VS',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      _buildInterestTypeSelector(),
-                    ],
-                  ),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                  ],
                 ),
+                
+                const SizedBox(height: 24),
+                
+                // 예금 섹션
+                _buildSavingsSection(),
+                
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _calculate,
@@ -367,44 +432,14 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
     );
   }
 
-  Widget _buildInterestTypeSelector() {
-    return Column(
-      children: InterestType.values.map((type) {
-        String title = '';
-        String subtitle = '';
-        
-        switch (type) {
-          case InterestType.simple:
-            title = '단리';
-            subtitle = '이자에 대한 이자 없음';
-            break;
-          case InterestType.compoundMonthly:
-            title = '월복리';
-            subtitle = '매월 이자가 원금에 추가';
-            break;
-        }
-
-        return RadioListTile<InterestType>(
-          title: Text(title),
-          subtitle: Text(subtitle),
-          value: type,
-          groupValue: _interestType,
-          onChanged: (value) {
-            setState(() {
-              _interestType = value!;
-            });
-          },
-          activeColor: Colors.deepOrange,
-        );
-      }).toList(),
-    );
-  }
 
   Widget _buildComparisonResults() {
     final betterOption = _savingsResult!.finalAmount > _checkingResult!.finalAmount ? '예금' : '적금';
     final difference = (_savingsResult!.finalAmount - _checkingResult!.finalAmount).abs();
-    final amount = CurrencyFormatter.parseWon(_amountController.text);
-    final period = CurrencyFormatter.parseNumber(_periodController.text).toInt();
+    final savingsAmount = CurrencyFormatter.parseWon(_savingsAmountController.text);
+    final checkingAmount = CurrencyFormatter.parseWon(_checkingAmountController.text);
+    final checkingPeriod = CurrencyFormatter.parseNumber(_checkingPeriodController.text).toInt();
+    final savingsPeriod = CurrencyFormatter.parseNumber(_savingsPeriodController.text).toInt();
 
     return Column(
       children: [
@@ -462,7 +497,7 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
                 '적금',
                 Colors.blue,
                 _checkingResult!,
-                '매월 ${CurrencyFormatter.formatWon(amount)} 납입',
+                '매월 ${CurrencyFormatter.formatWon(checkingAmount)} 납입',
               ),
             ),
             const SizedBox(width: 16),
@@ -471,7 +506,7 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
                 '예금',
                 Colors.green,
                 _savingsResult!,
-                '일시 ${CurrencyFormatter.formatWon(amount * period)} 예치',
+                '일시 ${CurrencyFormatter.formatWon(savingsAmount)} 예치',
               ),
             ),
           ],
@@ -543,10 +578,12 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
   }
 
   Widget _buildComparisonTable() {
-    final amount = CurrencyFormatter.parseWon(_amountController.text);
-    final period = CurrencyFormatter.parseNumber(_periodController.text).toInt();
-    final totalCheckingPrincipal = amount * period;
-    final totalSavingsPrincipal = amount * period;
+    final savingsAmount = CurrencyFormatter.parseWon(_savingsAmountController.text);
+    final checkingAmount = CurrencyFormatter.parseWon(_checkingAmountController.text);
+    final checkingPeriod = CurrencyFormatter.parseNumber(_checkingPeriodController.text).toInt();
+    final savingsPeriod = CurrencyFormatter.parseNumber(_savingsPeriodController.text).toInt();
+    final totalCheckingPrincipal = checkingAmount * checkingPeriod;
+    final totalSavingsPrincipal = savingsAmount;
 
     return CustomCard(
       child: Column(
@@ -616,87 +653,11 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildAnalysisSection(),
         ],
       ),
     );
   }
 
-  Widget _buildAnalysisSection() {
-    final amount = CurrencyFormatter.parseWon(_amountController.text);
-    final period = CurrencyFormatter.parseNumber(_periodController.text).toInt();
-    final interestRate = CurrencyFormatter.parsePercent(_interestRateController.text);
-    
-    final checkingAdvantage = _checkingResult!.finalAmount > _savingsResult!.finalAmount;
-    
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '분석 요약',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          
-          if (checkingAdvantage) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.trending_up, color: Colors.blue, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '적금이 유리한 이유: 매월 분할 납입으로 초기 자금 부담이 적고, 단계적으로 복리 효과를 누릴 수 있습니다.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ] else ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.trending_up, color: Colors.green, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '예금이 유리한 이유: 전체 금액을 처음부터 예치하여 더 긴 기간동안 복리 효과를 받을 수 있습니다.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ],
-          
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.lightbulb_outline, color: AppTheme.warningColor, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '실제 선택 시 고려사항: 현금 유동성, 중도해지 조건, 실제 이자율 차이 등을 종합적으로 고려하세요.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTableCell(String text, {bool isHeader = false, Color? color}) {
     return Padding(
@@ -709,6 +670,261 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
           color: color,
         ),
       ),
+    );
+  }
+
+  Widget _buildCheckingSection() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '적금 상품',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          CurrencyInputField(
+            label: '월 납입금액',
+            controller: _checkingAmountController,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return '월 납입금액을 입력해주세요';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          PercentInputField(
+            label: '연 이자율',
+            controller: _checkingInterestRateController,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return '연 이자율을 입력해주세요';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          PeriodInputField(
+            label: '기간',
+            controller: _checkingPeriodController,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return '기간을 입력해주세요';
+              }
+              return null;
+            },
+            onChanged: (value) {},
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '이자 계산 방식',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildInterestTypeSelector(_checkingInterestType, (value) {
+            setState(() {
+              _checkingInterestType = value!;
+            });
+          }, Colors.blue),
+          const SizedBox(height: 16),
+          Text(
+            '세금 설정',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildTaxTypeSelector(_checkingTaxType, (value) {
+            setState(() {
+              _checkingTaxType = value!;
+            });
+          }, Colors.blue),
+          if (_checkingTaxType == TaxType.custom) ...[
+            const SizedBox(height: 12),
+            PercentInputField(
+              label: '사용자 정의 세율',
+              controller: _checkingCustomTaxRateController,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSavingsSection() {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '예금 상품',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          CurrencyInputField(
+            label: '예치금액',
+            controller: _savingsAmountController,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return '예치금액을 입력해주세요';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          PercentInputField(
+            label: '연 이자율',
+            controller: _savingsInterestRateController,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return '연 이자율을 입력해주세요';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          PeriodInputField(
+            label: '기간',
+            controller: _savingsPeriodController,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return '기간을 입력해주세요';
+              }
+              return null;
+            },
+            onChanged: (value) {},
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '이자 계산 방식',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildInterestTypeSelector(_savingsInterestType, (value) {
+            setState(() {
+              _savingsInterestType = value!;
+            });
+          }, Colors.green),
+          const SizedBox(height: 16),
+          Text(
+            '세금 설정',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildTaxTypeSelector(_savingsTaxType, (value) {
+            setState(() {
+              _savingsTaxType = value!;
+            });
+          }, Colors.green),
+          if (_savingsTaxType == TaxType.custom) ...[
+            const SizedBox(height: 12),
+            PercentInputField(
+              label: '사용자 정의 세율',
+              controller: _savingsCustomTaxRateController,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInterestTypeSelector(
+    InterestType currentType,
+    Function(InterestType?) onChanged,
+    Color accentColor,
+  ) {
+    return Column(
+      children: InterestType.values.map((type) {
+        String title = '';
+        switch (type) {
+          case InterestType.simple:
+            title = '단리';
+            break;
+          case InterestType.compoundMonthly:
+            title = '월복리';
+            break;
+        }
+
+        return RadioListTile<InterestType>(
+          dense: true,
+          title: Text(title, style: const TextStyle(fontSize: 14)),
+          value: type,
+          groupValue: currentType,
+          onChanged: onChanged,
+          activeColor: accentColor,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTaxTypeSelector(
+    TaxType currentType,
+    Function(TaxType?) onChanged,
+    Color accentColor,
+  ) {
+    return Column(
+      children: TaxType.values.map((type) {
+        String title = '';
+        switch (type) {
+          case TaxType.normal:
+            title = '일반과세 (15.4%)';
+            break;
+          case TaxType.noTax:
+            title = '비과세';
+            break;
+          case TaxType.custom:
+            title = '사용자 정의';
+            break;
+        }
+
+        return RadioListTile<TaxType>(
+          dense: true,
+          title: Text(title, style: const TextStyle(fontSize: 14)),
+          value: type,
+          groupValue: currentType,
+          onChanged: onChanged,
+          activeColor: accentColor,
+        );
+      }).toList(),
     );
   }
 }
