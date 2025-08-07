@@ -28,34 +28,6 @@ class CalculatorHomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GradientCard(
-                margin: const EdgeInsets.only(bottom: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.trending_up,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '금융 계산의 모든 것',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '적금, 예금부터 비교 분석까지\n모든 이자 계산을 한 번에',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               Text(
                 '계산 도구',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(

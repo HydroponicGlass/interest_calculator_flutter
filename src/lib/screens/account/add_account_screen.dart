@@ -22,6 +22,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final _interestRateController = TextEditingController();
   final _periodController = TextEditingController();
   final _customTaxRateController = TextEditingController();
+  final _earlyTerminationRateController = TextEditingController();
 
   AccountType _accountType = AccountType.checking;
   InterestType _interestType = InterestType.compoundMonthly;
@@ -38,6 +39,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     _interestRateController.dispose();
     _periodController.dispose();
     _customTaxRateController.dispose();
+    _earlyTerminationRateController.dispose();
     super.dispose();
   }
 
@@ -59,6 +61,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             ? double.tryParse(_monthlyDepositController.text.replaceAll(',', '')) ?? 0
             : 0,
         interestRate: double.tryParse(_interestRateController.text) ?? 0,
+        earlyTerminationRate: double.tryParse(_earlyTerminationRateController.text) ?? 0,
         periodMonths: int.tryParse(_periodController.text) ?? 0,
         startDate: _startDate,
         interestType: _interestType,
@@ -205,6 +208,11 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
+                      PercentInputField(
+                        label: '중도해지이율 (선택)',
+                        controller: _earlyTerminationRateController,
+                      ),
+                      const SizedBox(height: 20),
                       _buildStartDateSelector(),
                     ],
                   ),
@@ -343,7 +351,8 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
               context: context,
               initialDate: _startDate,
               firstDate: DateTime(2000),
-              lastDate: DateTime.now(),
+              lastDate: DateTime.now().add(const Duration(days: 3650)), // 10년 후까지 선택 가능
+              helpText: '가입일 선택',
             );
             if (date != null) {
               setState(() {
@@ -360,11 +369,35 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today, color: AppTheme.textSecondary),
+                Icon(
+                  _startDate.isAfter(DateTime.now()) 
+                      ? Icons.schedule 
+                      : Icons.calendar_today, 
+                  color: _startDate.isAfter(DateTime.now()) 
+                      ? Colors.orange 
+                      : AppTheme.textSecondary,
+                ),
                 const SizedBox(width: 12),
-                Text(
-                  '${_startDate.year}.${_startDate.month.toString().padLeft(2, '0')}.${_startDate.day.toString().padLeft(2, '0')}',
-                  style: Theme.of(context).textTheme.bodyLarge,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_startDate.year}.${_startDate.month.toString().padLeft(2, '0')}.${_startDate.day.toString().padLeft(2, '0')}',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: _startDate.isAfter(DateTime.now()) 
+                            ? Colors.orange 
+                            : null,
+                      ),
+                    ),
+                    if (_startDate.isAfter(DateTime.now()))
+                      Text(
+                        '가입 예정일',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.orange,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
                 ),
                 const Spacer(),
                 const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),

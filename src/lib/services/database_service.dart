@@ -16,8 +16,9 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'interest_calculator.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDatabase,
+      onUpgrade: _upgradeDatabase,
     );
   }
 
@@ -29,6 +30,7 @@ class DatabaseService {
         bankName TEXT NOT NULL,
         principal REAL NOT NULL,
         interestRate REAL NOT NULL,
+        earlyTerminationRate REAL DEFAULT 0.0,
         periodMonths INTEGER NOT NULL,
         startDate INTEGER NOT NULL,
         interestType INTEGER NOT NULL,
@@ -38,6 +40,13 @@ class DatabaseService {
         monthlyDeposit REAL DEFAULT 0.0
       )
     ''');
+  }
+
+  static Future<void> _upgradeDatabase(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add earlyTerminationRate column
+      await db.execute('ALTER TABLE $tableName ADD COLUMN earlyTerminationRate REAL DEFAULT 0.0');
+    }
   }
 
   static Future<int> insertAccount(MyAccount account) async {

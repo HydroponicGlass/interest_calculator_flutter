@@ -127,6 +127,7 @@ class MyAccount {
   final String bankName;
   final double principal;
   final double interestRate;
+  final double earlyTerminationRate;
   final int periodMonths;
   final DateTime startDate;
   final InterestType interestType;
@@ -141,6 +142,7 @@ class MyAccount {
     required this.bankName,
     required this.principal,
     required this.interestRate,
+    this.earlyTerminationRate = 0.0,
     required this.periodMonths,
     required this.startDate,
     required this.interestType,
@@ -157,6 +159,7 @@ class MyAccount {
       'bankName': bankName,
       'principal': principal,
       'interestRate': interestRate,
+      'earlyTerminationRate': earlyTerminationRate,
       'periodMonths': periodMonths,
       'startDate': startDate.millisecondsSinceEpoch,
       'interestType': interestType.index,
@@ -174,6 +177,7 @@ class MyAccount {
       bankName: map['bankName'],
       principal: map['principal'],
       interestRate: map['interestRate'],
+      earlyTerminationRate: map['earlyTerminationRate'] ?? 0.0,
       periodMonths: map['periodMonths'],
       startDate: DateTime.fromMillisecondsSinceEpoch(map['startDate']),
       interestType: InterestType.values[map['interestType']],

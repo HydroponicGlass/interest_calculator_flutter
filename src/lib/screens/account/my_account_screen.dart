@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../providers/account_provider.dart';
 import '../../models/calculation_models.dart';
+import '../../services/interest_calculator.dart';
 import '../../utils/currency_formatter.dart';
 import 'add_account_screen.dart';
 import 'account_detail_screen.dart';
@@ -18,10 +20,23 @@ class MyAccountScreen extends StatefulWidget {
 }
 
 class _MyAccountScreenState extends State<MyAccountScreen> {
+  final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 3,
+      lineLength: 80,
+      colors: true,
+      printEmojis: true,
+      printTime: true,
+    ),
+  );
+
   @override
   void initState() {
     super.initState();
+    _logger.i('💼 [내 계좌] 화면 초기화');
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _logger.i('💼 [내 계좌] 계좌 목록 로드 시작');
       context.read<AccountProvider>().loadAccounts();
     });
   }
@@ -175,7 +190,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                     ),
                     Expanded(
                       child: _buildSummaryItem(
-                        '총 예상 수익',
+                        '만기시 총 수익',
                         _calculateTotalExpectedReturn(provider.accounts),
                         Colors.white,
                       ),
@@ -227,22 +242,63 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   }
 
   String _calculateTotalExpectedReturn(List<MyAccount> accounts) {
-    // Simplified calculation - in reality would use full interest calculation
+    _logger.d('💰 [내 계좌] 총 예상 수익 계산 시작 (계좌 수: ${accounts.length})');
+    
     double total = 0;
     for (var account in accounts) {
+      // 실제 이자 계산 엔진 사용
+      final input = InterestCalculationInput(
+        principal: account.principal,
+        interestRate: account.interestRate,
+        periodMonths: account.periodMonths,
+        interestType: account.interestType,
+        accountType: account.accountType,
+        taxType: account.taxType,
+        customTaxRate: account.customTaxRate,
+        monthlyDeposit: account.monthlyDeposit,
+      );
+      
+      final result = InterestCalculator.calculateInterest(input);
+      final accountReturn = result.totalInterest - result.taxAmount; // 세후 이자수익
+      
       if (account.accountType == AccountType.checking) {
-        total += account.monthlyDeposit * account.periodMonths * (account.interestRate / 100);
+        final totalDeposit = account.monthlyDeposit * account.periodMonths;
+        _logger.d('📈 [적금] ${account.name}: 총납입${CurrencyFormatter.formatWon(totalDeposit)}, 세후수익${CurrencyFormatter.formatWon(accountReturn)} (${account.interestType == InterestType.simple ? "단리" : "월복리"}, 세금${CurrencyFormatter.formatWon(result.taxAmount)})');
       } else {
-        total += account.principal * (account.interestRate / 100) * (account.periodMonths / 12);
+        _logger.d('📈 [예금] ${account.name}: 원금${CurrencyFormatter.formatWon(account.principal)}, 세후수익${CurrencyFormatter.formatWon(accountReturn)} (${account.interestType == InterestType.simple ? "단리" : "월복리"}, 세금${CurrencyFormatter.formatWon(result.taxAmount)})');
       }
+      
+      total += accountReturn;
     }
+    
+    _logger.i('💰 [내 계좌] 총 예상 수익 (세후): ${CurrencyFormatter.formatWon(total)}');
     return CurrencyFormatter.formatWon(total);
   }
 
   Widget _buildAccountCard(MyAccount account, AccountProvider provider) {
     final remainingDays = provider.getRemainingDays(account);
     final currentBalance = provider.getCurrentBalance(account);
-    final isExpired = remainingDays == 0;
+    final currentInterest = provider.getCurrentAccruedInterest(account);
+    final maturityDate = provider.getMaturityDate(account);
+    final isExpired = remainingDays < 0;  // 만료일이 지나야 만료됨
+    final isMaturityDay = remainingDays == 0;  // D-Day (만료 당일)
+    final isFutureAccount = account.startDate.isAfter(DateTime.now());  // 미래 가입일
+    
+    // 만기시 예상 이자 계산
+    final maturityInterestInput = InterestCalculationInput(
+      principal: account.principal,
+      interestRate: account.interestRate,
+      periodMonths: account.periodMonths,
+      interestType: account.interestType,
+      accountType: account.accountType,
+      taxType: account.taxType,
+      customTaxRate: account.customTaxRate,
+      monthlyDeposit: account.monthlyDeposit,
+    );
+    final maturityResult = InterestCalculator.calculateInterest(maturityInterestInput);
+    final maturityInterest = maturityResult.totalInterest - maturityResult.taxAmount; // 세후 이자
+    
+    _logger.d('📊 [내 계좌] ${account.name} 카드 정보 - 잔액: ${CurrencyFormatter.formatWon(currentBalance)}, 이자: ${CurrencyFormatter.formatWon(currentInterest)}, 남은일수: ${remainingDays}일');
 
     return CustomCard(
       onTap: () {
@@ -359,6 +415,40 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
+                      '현재 누적이자',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    Text(
+                      CurrencyFormatter.formatWon(currentInterest),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.secondaryColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '만기시 이자 (세후)',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    Text(
+                      CurrencyFormatter.formatWon(maturityInterest),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.accentColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
                       '연 이자율',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -371,20 +461,70 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                     ),
                   ],
                 ),
+                if (account.earlyTerminationRate > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '중도해지이율',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      Text(
+                        CurrencyFormatter.formatPercent(account.earlyTerminationRate),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isExpired ? '만료됨' : '남은 기간',
+                      '만료일',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     Text(
-                      isExpired 
-                          ? '만료' 
-                          : '${remainingDays}일',
+                      '${maturityDate.year}-${maturityDate.month.toString().padLeft(2, '0')}-${maturityDate.day.toString().padLeft(2, '0')}',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: isExpired ? Colors.red : AppTheme.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isFutureAccount 
+                          ? '가입까지' 
+                          : isExpired 
+                              ? '상태' 
+                              : '남은 기간',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    Text(
+                      isFutureAccount 
+                          ? 'D${remainingDays > 0 ? '+' : ''}${-remainingDays}일'
+                          : isExpired 
+                              ? '만료됨' 
+                              : isMaturityDay 
+                                  ? 'D-Day' 
+                                  : 'D-${remainingDays}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: isFutureAccount 
+                            ? Colors.orange
+                            : isExpired 
+                                ? Colors.red 
+                                : isMaturityDay 
+                                    ? Colors.orange 
+                                    : AppTheme.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -393,36 +533,27 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
               ],
             ),
           ),
-          if (!isExpired) ...[
-            const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: 1 - (remainingDays / (account.periodMonths * 30)),
-              backgroundColor: AppTheme.borderColor,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                account.accountType == AccountType.checking
-                    ? AppTheme.primaryColor
-                    : AppTheme.secondaryColor,
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
+
   void _navigateToEditAccount(MyAccount account) {
+    _logger.i('✏️ [내 계좌] 계좌 수정 화면 이동: ${account.name}');
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditAccountScreen(account: account),
       ),
     ).then((_) {
-      // Refresh the account list after returning from edit screen
+      _logger.i('🔄 [내 계좌] 수정 완료 후 계좌 목록 새로고침');
       context.read<AccountProvider>().loadAccounts();
     });
   }
 
   void _showDeleteDialog(MyAccount account, AccountProvider provider) {
+    _logger.w('🗑️ [내 계좌] 계좌 삭제 다이얼로그 표시: ${account.name}');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -430,20 +561,26 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         content: Text('${account.name} 계좌를 삭제하시겠습니까?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              _logger.d('❌ [내 계좌] 계좌 삭제 취소');
+              Navigator.pop(context);
+            },
             child: const Text('취소'),
           ),
           TextButton(
             onPressed: () async {
               try {
+                _logger.w('🗑️ [내 계좌] 계좌 삭제 실행: ${account.name} (ID: ${account.id})');
                 await provider.deleteAccount(account.id!);
                 if (mounted) {
                   Navigator.pop(context);
+                  _logger.i('✅ [내 계좌] 계좌 삭제 성공: ${account.name}');
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('계좌가 삭제되었습니다')),
                   );
                 }
               } catch (e) {
+                _logger.e('❌ [내 계좌] 계좌 삭제 실패: ${account.name}, 오류: $e');
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
