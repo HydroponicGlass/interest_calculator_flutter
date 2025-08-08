@@ -128,6 +128,7 @@ class MyAccount {
   final double principal;
   final double interestRate;
   final double earlyTerminationRate;
+  final InterestType earlyTerminationInterestType; // 중도해지 이자 계산 방식 추가
   final int periodMonths;
   final DateTime startDate;
   final InterestType interestType;
@@ -143,6 +144,7 @@ class MyAccount {
     required this.principal,
     required this.interestRate,
     this.earlyTerminationRate = 0.0,
+    this.earlyTerminationInterestType = InterestType.simple, // 기본값은 단리
     required this.periodMonths,
     required this.startDate,
     required this.interestType,
@@ -160,6 +162,7 @@ class MyAccount {
       'principal': principal,
       'interestRate': interestRate,
       'earlyTerminationRate': earlyTerminationRate,
+      'earlyTerminationInterestType': earlyTerminationInterestType.index,
       'periodMonths': periodMonths,
       'startDate': startDate.millisecondsSinceEpoch,
       'interestType': interestType.index,
@@ -178,6 +181,9 @@ class MyAccount {
       principal: map['principal'],
       interestRate: map['interestRate'],
       earlyTerminationRate: map['earlyTerminationRate'] ?? 0.0,
+      earlyTerminationInterestType: map['earlyTerminationInterestType'] != null 
+          ? InterestType.values[map['earlyTerminationInterestType']] 
+          : InterestType.simple,
       periodMonths: map['periodMonths'],
       startDate: DateTime.fromMillisecondsSinceEpoch(map['startDate']),
       interestType: InterestType.values[map['interestType']],

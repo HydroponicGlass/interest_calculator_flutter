@@ -48,6 +48,7 @@ class AccountProvider extends ChangeNotifier {
         principal: account.principal,
         interestRate: account.interestRate,
         earlyTerminationRate: account.earlyTerminationRate,
+        earlyTerminationInterestType: account.earlyTerminationInterestType,
         periodMonths: account.periodMonths,
         startDate: account.startDate,
         interestType: account.interestType,
@@ -352,5 +353,74 @@ class AccountProvider extends ChangeNotifier {
     }
     
     return DateTime(targetYear, targetMonth, targetDay);
+  }
+  
+  /// 오늘 중도해지시 예상이자를 계산합니다
+  double getEarlyTerminationInterest(MyAccount account) {
+    final now = DateTime.now();
+    final startDate = account.startDate;
+    
+    // 아직 시작하지 않은 계좌
+    if (now.isBefore(startDate)) {
+      _logger.d('📊 [중도해지] ${account.name} - 아직 시작하지 않은 계좌이므로 이자 0');
+      return 0.0;
+    }
+    
+    // 중도해지이율이 없는 경우 현재 누적이자와 동일
+    if (account.earlyTerminationRate <= 0) {
+      final currentInterest = getCurrentAccruedInterest(account);
+      _logger.d('📊 [중도해지] ${account.name} - 중도해지이율 없음, 현재 누적이자 반환: ${CurrencyFormatter.formatWon(currentInterest)}');
+      return currentInterest;
+    }
+    
+    // 중도해지이율로 계산
+    double earlyTerminationInterest = 0.0;
+    final earlyTerminationRateDecimal = account.earlyTerminationRate / 100;
+    final taxRate = _getTaxRate(account);
+    
+    if (account.accountType == AccountType.checking) {
+      // 적금: 각 납입에 대해 중도해지이율로 계산
+      final elapsedMonths = _getElapsedMonths(account);
+      
+      if (account.earlyTerminationInterestType == InterestType.simple) {
+        // 단리 계산
+        for (int i = 1; i <= elapsedMonths; i++) {
+          final monthInterest = account.monthlyDeposit * earlyTerminationRateDecimal * i / 12;
+          earlyTerminationInterest += monthInterest;
+        }
+      } else {
+        // 월복리 계산
+        final monthlyRate = earlyTerminationRateDecimal / 12;
+        for (int i = 1; i <= elapsedMonths; i++) {
+          final monthInterest = account.monthlyDeposit * (pow(1 + monthlyRate, i) - 1);
+          earlyTerminationInterest += monthInterest;
+        }
+      }
+      
+      _logger.d('📊 [중도해지] ${account.name} - 적금 중도해지이자: ${elapsedMonths}개월, ${account.earlyTerminationInterestType == InterestType.simple ? "단리" : "월복리"}, 세전이자 ${CurrencyFormatter.formatWon(earlyTerminationInterest)}');
+    } else {
+      // 예금: 경과일수에 비례하여 중도해지이율로 계산
+      final elapsedDays = now.difference(startDate).inDays;
+      
+      if (account.earlyTerminationInterestType == InterestType.simple) {
+        // 단리 계산
+        final yearlyInterest = account.principal * earlyTerminationRateDecimal;
+        earlyTerminationInterest = yearlyInterest * (elapsedDays / 365.0);
+      } else {
+        // 월복리 계산 (일할계산)
+        final dailyRate = earlyTerminationRateDecimal / 365;
+        earlyTerminationInterest = account.principal * (pow(1 + dailyRate, elapsedDays) - 1);
+      }
+      
+      _logger.d('📊 [중도해지] ${account.name} - 예금 중도해지이자: ${elapsedDays}일, ${account.earlyTerminationInterestType == InterestType.simple ? "단리" : "월복리"}, 세전이자 ${CurrencyFormatter.formatWon(earlyTerminationInterest)}');
+    }
+    
+    // 세후 이자 계산
+    final tax = earlyTerminationInterest * taxRate;
+    final afterTaxInterest = earlyTerminationInterest - tax;
+    
+    _logger.d('📊 [중도해지] ${account.name} - 중도해지 세금: ${CurrencyFormatter.formatWon(tax)}, 세후이자: ${CurrencyFormatter.formatWon(afterTaxInterest)}');
+    
+    return afterTaxInterest;
   }
 }

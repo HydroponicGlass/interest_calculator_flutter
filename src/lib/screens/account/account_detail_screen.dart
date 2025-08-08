@@ -418,6 +418,25 @@ class _AccountDetailScreenState extends State<AccountDetailScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '오늘 해지시 예상이자 (세후)',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        CurrencyFormatter.formatWon(provider.getEarlyTerminationInterest(currentAccount!)),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.red.shade600,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
                 const Divider(height: 24),
                 Row(

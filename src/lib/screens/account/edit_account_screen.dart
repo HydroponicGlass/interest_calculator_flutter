@@ -24,9 +24,11 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
   final _interestRateController = TextEditingController();
   final _periodController = TextEditingController();
   final _customTaxRateController = TextEditingController();
+  final _earlyTerminationRateController = TextEditingController();
 
   late AccountType _accountType;
   late InterestType _interestType;
+  late InterestType _earlyTerminationInterestType;
   late TaxType _taxType;
   late DateTime _startDate;
   bool _isLoading = false;
@@ -49,9 +51,11 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
     _interestRateController.text = widget.account.interestRate.toString();
     _periodController.text = widget.account.periodMonths.toString();
     _customTaxRateController.text = widget.account.customTaxRate.toString();
+    _earlyTerminationRateController.text = widget.account.earlyTerminationRate > 0 ? widget.account.earlyTerminationRate.toString() : '';
     
     _accountType = widget.account.accountType;
     _interestType = widget.account.interestType;
+    _earlyTerminationInterestType = widget.account.earlyTerminationInterestType;
     _taxType = widget.account.taxType;
     _startDate = widget.account.startDate;
   }
@@ -65,6 +69,7 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
     _interestRateController.dispose();
     _periodController.dispose();
     _customTaxRateController.dispose();
+    _earlyTerminationRateController.dispose();
     super.dispose();
   }
 
@@ -87,6 +92,8 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
             ? double.tryParse(_monthlyDepositController.text.replaceAll(',', '')) ?? 0
             : 0,
         interestRate: double.tryParse(_interestRateController.text) ?? 0,
+        earlyTerminationRate: double.tryParse(_earlyTerminationRateController.text) ?? 0,
+        earlyTerminationInterestType: _earlyTerminationInterestType,
         periodMonths: int.tryParse(_periodController.text) ?? 0,
         startDate: _startDate,
         interestType: _interestType,
@@ -272,6 +279,20 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 20),
+                      PercentInputField(
+                        label: '중도해지이율 (선택)',
+                        controller: _earlyTerminationRateController,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '중도해지 이자 계산 방식',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildEarlyTerminationInterestTypeSelector(),
                       const SizedBox(height: 20),
                       _buildStartDateSelector(),
                     ],
@@ -523,6 +544,39 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
           onChanged: (value) {
             setState(() {
               _taxType = value!;
+            });
+          },
+          activeColor: AppTheme.primaryColor,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildEarlyTerminationInterestTypeSelector() {
+    return Column(
+      children: InterestType.values.map((type) {
+        String title = '';
+        String subtitle = '';
+        
+        switch (type) {
+          case InterestType.simple:
+            title = '단리';
+            subtitle = '중도해지시 단리로 계산';
+            break;
+          case InterestType.compoundMonthly:
+            title = '월복리';
+            subtitle = '중도해지시 월복리로 계산';
+            break;
+        }
+
+        return RadioListTile<InterestType>(
+          title: Text(title),
+          subtitle: Text(subtitle),
+          value: type,
+          groupValue: _earlyTerminationInterestType,
+          onChanged: (value) {
+            setState(() {
+              _earlyTerminationInterestType = value!;
             });
           },
           activeColor: AppTheme.primaryColor,

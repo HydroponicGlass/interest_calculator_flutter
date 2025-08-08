@@ -26,6 +26,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
   AccountType _accountType = AccountType.checking;
   InterestType _interestType = InterestType.compoundMonthly;
+  InterestType _earlyTerminationInterestType = InterestType.simple;
   TaxType _taxType = TaxType.normal;
   DateTime _startDate = DateTime.now();
   bool _isLoading = false;
@@ -62,6 +63,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
             : 0,
         interestRate: double.tryParse(_interestRateController.text) ?? 0,
         earlyTerminationRate: double.tryParse(_earlyTerminationRateController.text) ?? 0,
+        earlyTerminationInterestType: _earlyTerminationInterestType,
         periodMonths: int.tryParse(_periodController.text) ?? 0,
         startDate: _startDate,
         interestType: _interestType,
@@ -212,6 +214,15 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         label: '중도해지이율 (선택)',
                         controller: _earlyTerminationRateController,
                       ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '중도해지 이자 계산 방식',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildEarlyTerminationInterestTypeSelector(),
                       const SizedBox(height: 20),
                       _buildStartDateSelector(),
                     ],
@@ -466,6 +477,39 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
           onChanged: (value) {
             setState(() {
               _taxType = value!;
+            });
+          },
+          activeColor: AppTheme.primaryColor,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildEarlyTerminationInterestTypeSelector() {
+    return Column(
+      children: InterestType.values.map((type) {
+        String title = '';
+        String subtitle = '';
+        
+        switch (type) {
+          case InterestType.simple:
+            title = '단리';
+            subtitle = '중도해지시 단리로 계산';
+            break;
+          case InterestType.compoundMonthly:
+            title = '월복리';
+            subtitle = '중도해지시 월복리로 계산';
+            break;
+        }
+
+        return RadioListTile<InterestType>(
+          title: Text(title),
+          subtitle: Text(subtitle),
+          value: type,
+          groupValue: _earlyTerminationInterestType,
+          onChanged: (value) {
+            setState(() {
+              _earlyTerminationInterestType = value!;
             });
           },
           activeColor: AppTheme.primaryColor,

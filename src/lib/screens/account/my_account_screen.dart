@@ -479,6 +479,23 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '오늘 해지시 예상이자',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      Text(
+                        CurrencyFormatter.formatWon(provider.getEarlyTerminationInterest(account)),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.red.shade600,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
                 const SizedBox(height: 8),
                 Row(

@@ -16,7 +16,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'interest_calculator.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDatabase,
       onUpgrade: _upgradeDatabase,
     );
@@ -31,6 +31,7 @@ class DatabaseService {
         principal REAL NOT NULL,
         interestRate REAL NOT NULL,
         earlyTerminationRate REAL DEFAULT 0.0,
+        earlyTerminationInterestType INTEGER DEFAULT 0,
         periodMonths INTEGER NOT NULL,
         startDate INTEGER NOT NULL,
         interestType INTEGER NOT NULL,
@@ -46,6 +47,10 @@ class DatabaseService {
     if (oldVersion < 2) {
       // Add earlyTerminationRate column
       await db.execute('ALTER TABLE $tableName ADD COLUMN earlyTerminationRate REAL DEFAULT 0.0');
+    }
+    if (oldVersion < 3) {
+      // Add earlyTerminationInterestType column
+      await db.execute('ALTER TABLE $tableName ADD COLUMN earlyTerminationInterestType INTEGER DEFAULT 0');
     }
   }
 
