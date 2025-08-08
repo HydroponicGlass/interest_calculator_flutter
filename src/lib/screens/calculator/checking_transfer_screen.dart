@@ -951,13 +951,6 @@ class _CheckingTransferScreenState extends State<CheckingTransferScreen> {
             '• 신규예금 이자 = ${CurrencyFormatter.formatWon(_elapsedResult?.finalAmount ?? 0)} × ${newRate.toStringAsFixed(1)}% × $remainingPeriod개월/12',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          Text(
-            '• 실제 투입 자금을 기준으로 한 정확한 복리 계산',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.blue.shade700,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
         ],
       ),
     );
