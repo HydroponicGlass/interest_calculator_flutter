@@ -3,6 +3,7 @@ import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
+import '../../widgets/common/disclaimer_card.dart';
 import '../../widgets/quick_input_buttons.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
@@ -565,6 +566,9 @@ class _CheckingSavingsCompareScreenState extends State<CheckingSavingsCompareScr
         
         // Comparison Table
         _buildComparisonTable(),
+        
+        const SizedBox(height: 16),
+        const DisclaimerCard(),
       ],
     );
   }

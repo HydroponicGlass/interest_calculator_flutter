@@ -4,6 +4,7 @@ import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
+import '../../widgets/common/disclaimer_card.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
 import '../../services/calculation_history_service.dart';
@@ -464,6 +465,8 @@ class _SavingsInterestScreenState extends State<SavingsInterestScreen> {
           const SizedBox(height: 16),
           AdditionalInfoCard(additionalInfo: _additionalInfo!),
         ],
+        const SizedBox(height: 16),
+        const DisclaimerCard(),
       ],
     );
   }
