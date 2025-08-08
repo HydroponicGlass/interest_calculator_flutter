@@ -268,7 +268,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                 ),
                 const SizedBox(height: 48),
                 Text(
-                  '올인원 이자 계산기',
+                  '올인원 이자계산기',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 32,

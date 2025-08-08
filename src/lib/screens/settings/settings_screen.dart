@@ -107,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Footer
               Center(
                 child: Text(
-                  '올인원 이자 계산기 v1.0.0\\n똑똑한 금융 계산의 시작',
+                  '올인원 이자계산기 v1.0.0\\n9가지 도구로 완성하는 스마트 금융계산',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),

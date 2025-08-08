@@ -1,5 +1,5 @@
 name: interestcalculator
-description: "종합 금융 계산기 - 적금, 예금 이자 계산 및 비교 분석"
+description: "올인원 이자계산기 - 9가지 도구로 완성하는 스마트 금융계산"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
