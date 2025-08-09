@@ -15,6 +15,7 @@ class CustomInputField extends StatelessWidget {
   final bool enabled;
   final IconData? prefixIcon;
   final Widget? suffixWidget;
+  final FocusNode? focusNode;
 
   const CustomInputField({
     super.key,
@@ -29,6 +30,7 @@ class CustomInputField extends StatelessWidget {
     this.enabled = true,
     this.prefixIcon,
     this.suffixWidget,
+    this.focusNode,
   });
 
   @override
@@ -43,6 +45,7 @@ class CustomInputField extends StatelessWidget {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           validator: validator,
@@ -68,6 +71,7 @@ class CurrencyInputField extends StatefulWidget {
   final String? Function(String?)? validator;
   final void Function(double)? onChanged;
   final bool enabled;
+  final FocusNode? focusNode;
 
   const CurrencyInputField({
     super.key,
@@ -76,6 +80,7 @@ class CurrencyInputField extends StatefulWidget {
     this.validator,
     this.onChanged,
     this.enabled = true,
+    this.focusNode,
   });
 
   @override
@@ -95,6 +100,7 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
         const SizedBox(height: 8),
         TextFormField(
           controller: widget.controller,
+          focusNode: widget.focusNode,
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
@@ -163,6 +169,7 @@ class PercentInputField extends StatefulWidget {
   final String? Function(String?)? validator;
   final void Function(double)? onChanged;
   final bool enabled;
+  final FocusNode? focusNode;
 
   const PercentInputField({
     super.key,
@@ -171,6 +178,7 @@ class PercentInputField extends StatefulWidget {
     this.validator,
     this.onChanged,
     this.enabled = true,
+    this.focusNode,
   });
 
   @override
@@ -190,6 +198,7 @@ class _PercentInputFieldState extends State<PercentInputField> {
         const SizedBox(height: 8),
         TextFormField(
           controller: widget.controller,
+          focusNode: widget.focusNode,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
@@ -253,6 +262,7 @@ class PeriodInputField extends StatefulWidget {
   final String? Function(String?)? validator;
   final void Function(int)? onChanged;
   final bool enabled;
+  final FocusNode? focusNode;
 
   const PeriodInputField({
     super.key,
@@ -261,6 +271,7 @@ class PeriodInputField extends StatefulWidget {
     this.validator,
     this.onChanged,
     this.enabled = true,
+    this.focusNode,
   });
 
   @override
@@ -280,6 +291,7 @@ class _PeriodInputFieldState extends State<PeriodInputField> {
         const SizedBox(height: 8),
         TextFormField(
           controller: widget.controller,
+          focusNode: widget.focusNode,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: widget.validator,

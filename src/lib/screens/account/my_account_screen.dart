@@ -5,6 +5,7 @@ import 'package:logger/logger.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../providers/account_provider.dart';
+import '../../providers/ad_provider.dart';
 import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
 import '../../utils/currency_formatter.dart';
@@ -38,7 +39,19 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _logger.i('💼 [내 계좌] 계좌 목록 로드 시작');
       context.read<AccountProvider>().loadAccounts();
+      context.read<AdProvider>().initialize();
     });
+  }
+
+  /// Navigate to add account screen (ads will show when user saves the account)
+  void _navigateToAddAccount() {
+    _logger.i('🔘 [내 계좌] 계좌 추가 버튼 클릭됨 - AddAccountScreen으로 이동');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddAccountScreen(),
+      ),
+    );
   }
 
   @override
@@ -50,12 +63,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AddAccountScreen(),
-                ),
-              );
+              _logger.i('🔘 [내 계좌] AppBar 계좌 추가 아이콘 클릭됨');
+              _navigateToAddAccount();
             },
             icon: const Icon(Icons.add),
           ),
@@ -120,23 +129,28 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AddAccountScreen(),
+              Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _logger.i('🔘 [내 계좌] 빈 상태 계좌 추가 버튼 클릭됨');
+                      _navigateToAddAccount();
+                    },
+                    icon: const Icon(Icons.add, size: 20),
+                    label: const Text('계좌 추가하기'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      minimumSize: const Size(200, 50),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('계좌 추가하기'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
                   ),
-                ),
+                ],
               ),
             ],
           ),

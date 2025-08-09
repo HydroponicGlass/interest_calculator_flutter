@@ -1,5 +1,25 @@
 PODS:
+  - AppLovinSDK (13.1.0)
   - Flutter (1.0.0)
+  - gma_mediation_applovin (2.1.0):
+    - Flutter
+    - GoogleMobileAdsMediationAppLovin (~> 13.1.0.0)
+  - gma_mediation_unity (1.3.0):
+    - Flutter
+    - GoogleMobileAdsMediationUnity (~> 4.13.1.0)
+  - Google-Mobile-Ads-SDK (11.13.0):
+    - GoogleUserMessagingPlatform (>= 1.1)
+  - google_mobile_ads (5.3.1):
+    - Flutter
+    - Google-Mobile-Ads-SDK (~> 11.13.0)
+    - webview_flutter_wkwebview
+  - GoogleMobileAdsMediationAppLovin (13.1.0.0):
+    - AppLovinSDK (= 13.1.0)
+    - Google-Mobile-Ads-SDK (~> 11.0)
+  - GoogleMobileAdsMediationUnity (4.13.1.0):
+    - Google-Mobile-Ads-SDK (~> 11.0)
+    - UnityAds (= 4.13.1)
+  - GoogleUserMessagingPlatform (3.0.0)
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -9,28 +29,63 @@ PODS:
   - sqflite_darwin (0.0.4):
     - Flutter
     - FlutterMacOS
+  - UnityAds (4.13.1)
+  - webview_flutter_wkwebview (0.0.1):
+    - Flutter
+    - FlutterMacOS
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
+  - gma_mediation_applovin (from `.symlinks/plugins/gma_mediation_applovin/ios`)
+  - gma_mediation_unity (from `.symlinks/plugins/gma_mediation_unity/ios`)
+  - google_mobile_ads (from `.symlinks/plugins/google_mobile_ads/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
+  - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
+
+SPEC REPOS:
+  trunk:
+    - AppLovinSDK
+    - Google-Mobile-Ads-SDK
+    - GoogleMobileAdsMediationAppLovin
+    - GoogleMobileAdsMediationUnity
+    - GoogleUserMessagingPlatform
+    - UnityAds
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
+  gma_mediation_applovin:
+    :path: ".symlinks/plugins/gma_mediation_applovin/ios"
+  gma_mediation_unity:
+    :path: ".symlinks/plugins/gma_mediation_unity/ios"
+  google_mobile_ads:
+    :path: ".symlinks/plugins/google_mobile_ads/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
   shared_preferences_foundation:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   sqflite_darwin:
     :path: ".symlinks/plugins/sqflite_darwin/darwin"
+  webview_flutter_wkwebview:
+    :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
 
 SPEC CHECKSUMS:
+  AppLovinSDK: 539a0178d8bef4d68b2551a93526e0c1bba06cb2
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  gma_mediation_applovin: 7c035579c65d8ea7124bb62fe16a63bf9fb7524a
+  gma_mediation_unity: 4137782c8c7b9bce1b208f55d1f482ec95958c25
+  Google-Mobile-Ads-SDK: 14f57f2dc33532a24db288897e26494640810407
+  google_mobile_ads: fe0e2c1764ad95323dd0e3081d0bb2d58411f957
+  GoogleMobileAdsMediationAppLovin: 5934f328952e469ebf6a51438fe58500885cbee4
+  GoogleMobileAdsMediationUnity: 769e2b05b68c066b97c5125b55bcdeb1eb59e63e
+  GoogleUserMessagingPlatform: f8d0cdad3ca835406755d0a69aa634f00e76d576
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
   sqflite_darwin: 5a7236e3b501866c1c9befc6771dfd73ffb8702d
+  UnityAds: 213536f6565ba7139f6ba425910edada720ceb9d
+  webview_flutter_wkwebview: a4af96a051138e28e29f60101d094683b9f82188
 
 PODFILE CHECKSUM: 4305caec6b40dde0ae97be1573c53de1882a07e5
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
@@ -9,6 +10,8 @@ import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
 import '../../services/calculation_history_service.dart';
 import '../../utils/currency_formatter.dart';
+import '../../providers/ad_provider.dart';
+import '../../widgets/common/ad_warning_text.dart';
 
 class CheckingCompareScreen extends StatefulWidget {
   const CheckingCompareScreen({super.key});
@@ -178,6 +181,14 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
       return;
+    }
+
+    // Show ad every 5th calculation
+    try {
+      final adProvider = context.read<AdProvider>();
+      await adProvider.onCalculationButtonPressed();
+    } catch (e) {
+      _logger.w('⚠️ [계산] 광고 표시 중 오류 (무시하고 계속): $e');
     }
 
     _logger.i('⚔️ [적금 상품 비교] 계산 시작');
@@ -388,45 +399,66 @@ class _CheckingCompareScreenState extends State<CheckingCompareScreen> {
                 ),
                 
                 const SizedBox(height: 24),
-                Row(
+                Column(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _resetForm,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _resetForm,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: const BorderSide(color: Colors.teal),
+                            ),
+                            child: const Text(
+                              '초기화',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.teal,
+                              ),
+                            ),
                           ),
-                          side: const BorderSide(color: Colors.teal),
                         ),
-                        child: const Text(
-                          '초기화',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.teal,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: _calculate,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              '비교 분석하기',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: _calculate,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    Row(
+                      children: [
+                        const Expanded(child: SizedBox()),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Consumer<AdProvider>(
+                            builder: (context, adProvider, child) {
+                              return AdWarningText(
+                                type: AdWarningType.calculation,
+                                show: adProvider.showCalculationAdWarning,
+                              );
+                            },
                           ),
                         ),
-                        child: const Text(
-                          '비교 분석하기',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
-                      ),
+                      ],
                     ),
                   ],
                 ),

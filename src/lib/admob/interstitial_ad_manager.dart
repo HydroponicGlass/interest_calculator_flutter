@@ -58,9 +58,14 @@ class InterstitialAdManager{
   }
 
   void show(){
-    if(_interstitialAd != null){
+    if(_interstitialAd != null && isAdLoadedNotifier.value == AdLoadReturn.success){
       logger.d('InterstitialAd show');
       _interstitialAd?.show();
+      // Reset the ad reference after showing
+      _interstitialAd = null;
+      isAdLoadedNotifier.value = AdLoadReturn.waiting;
+    } else {
+      logger.w('InterstitialAd not ready to show - loading state: ${isAdLoadedNotifier.value}');
     }
   }
 }

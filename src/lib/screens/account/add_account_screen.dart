@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
+import '../../widgets/common/ad_warning_text.dart';
 import '../../models/calculation_models.dart';
 import '../../providers/account_provider.dart';
+import '../../providers/ad_provider.dart';
 
 class AddAccountScreen extends StatefulWidget {
   const AddAccountScreen({super.key});
@@ -15,6 +17,7 @@ class AddAccountScreen extends StatefulWidget {
 
 class _AddAccountScreenState extends State<AddAccountScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
   final _nameController = TextEditingController();
   final _bankNameController = TextEditingController();
   final _principalController = TextEditingController();
@@ -23,6 +26,13 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final _periodController = TextEditingController();
   final _customTaxRateController = TextEditingController();
   final _earlyTerminationRateController = TextEditingController();
+
+  final _nameFocus = FocusNode();
+  final _bankNameFocus = FocusNode();
+  final _principalFocus = FocusNode();
+  final _monthlyDepositFocus = FocusNode();
+  final _interestRateFocus = FocusNode();
+  final _periodFocus = FocusNode();
 
   AccountType _accountType = AccountType.checking;
   InterestType _interestType = InterestType.compoundMonthly;
@@ -33,6 +43,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _nameController.dispose();
     _bankNameController.dispose();
     _principalController.dispose();
@@ -41,17 +52,66 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     _periodController.dispose();
     _customTaxRateController.dispose();
     _earlyTerminationRateController.dispose();
+    _nameFocus.dispose();
+    _bankNameFocus.dispose();
+    _principalFocus.dispose();
+    _monthlyDepositFocus.dispose();
+    _interestRateFocus.dispose();
+    _periodFocus.dispose();
     super.dispose();
   }
 
+  void _scrollToFirstError() {
+    // Define focus nodes and their validation checks in order of appearance
+    final validationChecks = [
+      (_nameFocus, () => _nameController.text.isEmpty),
+      (_bankNameFocus, () => _bankNameController.text.isEmpty),
+      if (_accountType == AccountType.savings) 
+        (_principalFocus, () => _principalController.text.isEmpty),
+      if (_accountType == AccountType.checking)
+        (_monthlyDepositFocus, () => _monthlyDepositController.text.isEmpty),
+      (_interestRateFocus, () => _interestRateController.text.isEmpty),
+      (_periodFocus, () => _periodController.text.isEmpty),
+    ];
+
+    // Find the first field with an error
+    for (final check in validationChecks) {
+      final focusNode = check.$1;
+      final hasError = check.$2();
+      
+      if (hasError && focusNode.context != null) {
+        // Focus on this field
+        focusNode.requestFocus();
+        
+        // Scroll to make it visible
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent * 0.3, // Scroll to roughly 1/3 down
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        });
+        break;
+      }
+    }
+  }
+
   void _saveAccount() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      // Find and scroll to the first error field
+      _scrollToFirstError();
+      return;
+    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // Show ad for account creation
+      final adProvider = context.read<AdProvider>();
+      await adProvider.onAccountButtonPressed();
+
       final account = MyAccount(
         name: _nameController.text,
         bankName: _bankNameController.text,
@@ -107,6 +167,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
       body: Container(
         decoration: AppTheme.gradientBackground,
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
@@ -128,6 +189,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         label: '계좌명',
                         hint: '계좌의 별명을 입력하세요',
                         controller: _nameController,
+                        focusNode: _nameFocus,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '계좌명을 입력해주세요';
@@ -140,6 +202,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         label: '은행명',
                         hint: '은행명을 입력하세요',
                         controller: _bankNameController,
+                        focusNode: _bankNameFocus,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '은행명을 입력해주세요';
@@ -168,6 +231,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         CurrencyInputField(
                           label: '초기 입금액',
                           controller: _principalController,
+                          focusNode: _principalFocus,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return '초기 입금액을 입력해주세요';
@@ -179,6 +243,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                         CurrencyInputField(
                           label: '월 납입금액',
                           controller: _monthlyDepositController,
+                          focusNode: _monthlyDepositFocus,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return '월 납입금액을 입력해주세요';
@@ -191,6 +256,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                       PercentInputField(
                         label: '연 이자율',
                         controller: _interestRateController,
+                        focusNode: _interestRateFocus,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '연 이자율을 입력해주세요';
@@ -202,6 +268,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                       PeriodInputField(
                         label: '가입기간',
                         controller: _periodController,
+                        focusNode: _periodFocus,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '가입기간을 입력해주세요';
@@ -268,27 +335,40 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _saveAccount,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text(
-                          '계좌 추가',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _saveAccount,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              '계좌 추가',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                    ),
+                    Consumer<AdProvider>(
+                      builder: (context, adProvider, child) {
+                        return AdWarningText(
+                          type: AdWarningType.account,
+                          show: adProvider.showAccountAdWarning,
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
+import '../../widgets/common/ad_warning_text.dart';
+import '../../providers/ad_provider.dart';
 import 'checking_interest_screen.dart';
 import 'savings_interest_screen.dart';
 import 'checking_need_period_screen.dart';
@@ -12,8 +15,22 @@ import 'savings_compare_screen.dart';
 import 'checking_savings_compare_screen.dart';
 import 'checking_transfer_screen.dart';
 
-class CalculatorHomeScreen extends StatelessWidget {
+class CalculatorHomeScreen extends StatefulWidget {
   const CalculatorHomeScreen({super.key});
+
+  @override
+  State<CalculatorHomeScreen> createState() => _CalculatorHomeScreenState();
+}
+
+class _CalculatorHomeScreenState extends State<CalculatorHomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize ad provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AdProvider>().initialize();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,10 +65,7 @@ class CalculatorHomeScreen extends StatelessWidget {
                       title: '적금 이자계산',
                       subtitle: '정기적금 수익 계산',
                       color: AppTheme.primaryColor,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CheckingInterestScreen()),
-                      ),
+                      screen: const CheckingInterestScreen(),
                     ),
                     _buildCalculatorCard(
                       context,
@@ -59,10 +73,7 @@ class CalculatorHomeScreen extends StatelessWidget {
                       title: '예금 이자계산',
                       subtitle: '예금 수익 계산',
                       color: AppTheme.secondaryColor,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SavingsInterestScreen()),
-                      ),
+                      screen: const SavingsInterestScreen(),
                     ),
                     _buildCalculatorCard(
                       context,
@@ -70,10 +81,7 @@ class CalculatorHomeScreen extends StatelessWidget {
                       title: '적금 필요기간',
                       subtitle: '목표금액 달성 기간',
                       color: AppTheme.accentColor,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CheckingNeedPeriodScreen()),
-                      ),
+                      screen: const CheckingNeedPeriodScreen(),
                     ),
                     _buildCalculatorCard(
                       context,
@@ -81,10 +89,7 @@ class CalculatorHomeScreen extends StatelessWidget {
                       title: '예금 필요기간',
                       subtitle: '목표수익 달성 기간',
                       color: Colors.orange,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SavingsNeedPeriodScreen()),
-                      ),
+                      screen: const SavingsNeedPeriodScreen(),
                     ),
                     _buildCalculatorCard(
                       context,
@@ -92,10 +97,7 @@ class CalculatorHomeScreen extends StatelessWidget {
                       title: '적금 목표수익\n필요 입금액',
                       subtitle: '목표수익을 위한 월간 필요입금액',
                       color: Colors.purple,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SavingsNeedAmountScreen()),
-                      ),
+                      screen: const SavingsNeedAmountScreen(),
                     ),
                     _buildCalculatorCard(
                       context,
@@ -103,10 +105,7 @@ class CalculatorHomeScreen extends StatelessWidget {
                       title: '적금 비교',
                       subtitle: '적금 상품 비교',
                       color: Colors.teal,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CheckingCompareScreen()),
-                      ),
+                      screen: const CheckingCompareScreen(),
                     ),
                     _buildCalculatorCard(
                       context,
@@ -114,10 +113,7 @@ class CalculatorHomeScreen extends StatelessWidget {
                       title: '예금 비교',
                       subtitle: '예금 상품 비교',
                       color: Colors.indigo,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SavingsCompareScreen()),
-                      ),
+                      screen: const SavingsCompareScreen(),
                     ),
                     _buildCalculatorCard(
                       context,
@@ -125,10 +121,7 @@ class CalculatorHomeScreen extends StatelessWidget {
                       title: '적금vs예금',
                       subtitle: '적금과 예금 비교',
                       color: Colors.deepOrange,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CheckingSavingsCompareScreen()),
-                      ),
+                      screen: const CheckingSavingsCompareScreen(),
                     ),
                     _buildCalculatorCard(
                       context,
@@ -136,10 +129,7 @@ class CalculatorHomeScreen extends StatelessWidget {
                       title: '예금 갈아타기',
                       subtitle: '만기 전 다른 예금으로 변경시 이자 비교',
                       color: Colors.brown,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CheckingTransferScreen()),
-                      ),
+                      screen: const CheckingTransferScreen(),
                     ),
                   ],
                 ),
@@ -151,57 +141,65 @@ class CalculatorHomeScreen extends StatelessWidget {
     );
   }
 
+  /// Navigate to calculator screen
+  void _navigateTo(Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
+  }
+
   Widget _buildCalculatorCard(
     BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
     required Color color,
-    required VoidCallback onTap,
+    required Widget screen,
   }) {
     return CustomCard(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: color,
-            ),
+          onTap: () => _navigateTo(screen),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Flexible(
+                child: Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Flexible(
-            child: Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    ).animate()
-      .fadeIn(duration: 300.ms, delay: (100).ms)
-      .slideY(begin: 0.2, end: 0);
+        ).animate()
+          .fadeIn(duration: 300.ms, delay: (100).ms)
+          .slideY(begin: 0.2, end: 0);
   }
 }

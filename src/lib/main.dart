@@ -5,8 +5,13 @@ import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/main_screen.dart';
 import 'services/onboarding_service.dart';
 import 'providers/account_provider.dart';
+import 'providers/ad_provider.dart';
+import 'gdpr/gdpr_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Note: Google Mobile Ads is initialized in GdprHelper after GDPR consent
   runApp(const InterestCalculatorApp());
 }
 
@@ -18,6 +23,7 @@ class InterestCalculatorApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AccountProvider()),
+        ChangeNotifierProvider(create: (_) => AdProvider()),
       ],
       child: MaterialApp(
         title: '올인원 이자계산기',
@@ -33,7 +39,10 @@ class InterestCalculatorApp extends StatelessWidget {
             }
             
             final hasCompleted = snapshot.data ?? false;
-            return hasCompleted ? const MainScreen() : const OnboardingScreen();
+            final targetScreen = hasCompleted ? const MainScreen() : const OnboardingScreen();
+            
+            // Always go through GDPR screen first to initialize AdMob properly
+            return GdprScreen(nextScreen: targetScreen);
           },
         ),
       ),

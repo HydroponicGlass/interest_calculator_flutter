@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/custom_card.dart';
 import '../../widgets/common/custom_input_field.dart';
@@ -9,6 +10,8 @@ import '../../models/calculation_models.dart';
 import '../../services/interest_calculator.dart';
 import '../../services/calculation_history_service.dart';
 import '../../utils/currency_formatter.dart';
+import '../../providers/ad_provider.dart';
+import '../../widgets/common/ad_warning_text.dart';
 
 class SavingsNeedPeriodScreen extends StatefulWidget {
   const SavingsNeedPeriodScreen({super.key});
@@ -124,6 +127,14 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
     if (!_formKey.currentState!.validate()) {
       _scrollToFirstError();
       return;
+    }
+
+    // Show ad every 5th calculation
+    try {
+      final adProvider = context.read<AdProvider>();
+      await adProvider.onCalculationButtonPressed();
+    } catch (e) {
+      _logger.w('⚠️ [계산] 광고 표시 중 오류 (무시하고 계속): $e');
     }
 
     _logger.i('🎯 예금 필요기간 계산 시작');
@@ -304,45 +315,66 @@ class _SavingsNeedPeriodScreenState extends State<SavingsNeedPeriodScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Row(
+                Column(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _resetForm,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _resetForm,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: const BorderSide(color: Colors.orange),
+                            ),
+                            child: const Text(
+                              '초기화',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange,
+                              ),
+                            ),
                           ),
-                          side: const BorderSide(color: Colors.orange),
                         ),
-                        child: const Text(
-                          '초기화',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: _calculate,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              '필요기간 계산하기',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: _calculate,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    Row(
+                      children: [
+                        const Expanded(child: SizedBox()),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Consumer<AdProvider>(
+                            builder: (context, adProvider, child) {
+                              return AdWarningText(
+                                type: AdWarningType.calculation,
+                                show: adProvider.showCalculationAdWarning,
+                              );
+                            },
                           ),
                         ),
-                        child: const Text(
-                          '필요기간 계산하기',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
