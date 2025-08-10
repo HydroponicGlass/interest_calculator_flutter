@@ -55,7 +55,7 @@ class _CalculatorHomeScreenState extends State<CalculatorHomeScreen> {
               Expanded(
                 child: GridView.count(
                   crossAxisCount: 2,
-                  childAspectRatio: 1.1,
+                  childAspectRatio: 0.9,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
                   children: [
@@ -95,7 +95,7 @@ class _CalculatorHomeScreenState extends State<CalculatorHomeScreen> {
                       context,
                       icon: Icons.attach_money,
                       title: '적금 목표수익\n필요 입금액',
-                      subtitle: '목표수익을 위한 월간 필요입금액',
+                      subtitle: '목표수익 달성을 위한\n월 필요입금액',
                       color: Colors.purple,
                       screen: const SavingsNeedAmountScreen(),
                     ),
