@@ -65,14 +65,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: _showClearHistoryDialog,
                       iconColor: Colors.orange,
                     ),
-                    const Divider(height: 1),
-                    _buildSettingItem(
-                      Icons.refresh,
-                      '앱 초기화',
-                      '모든 데이터를 삭제하고 처음 상태로 되돌립니다',
-                      onTap: _showResetAppDialog,
-                      iconColor: Colors.red,
-                    ),
                   ],
                 ),
               ),
@@ -194,7 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('계산 기록 초기화'),
         content: const Text(
-          '저장된 모든 계산 입력값들이 삭제됩니다.\\n다음에 계산기를 사용할 때 빈 화면으로 시작됩니다.\\n\\n계속하시겠습니까?',
+          '저장된 모든 계산 입력값들이 삭제됩니다.\n다음에 계산기를 사용할 때 빈 화면으로 시작됩니다.\n\n계속하시겠습니까?',
         ),
         actions: [
           TextButton(
@@ -221,40 +213,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showResetAppDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('앱 초기화'),
-        content: const Text(
-          '다음 항목들이 모두 삭제됩니다:\\n\\n• 저장된 모든 계좌\\n• 계산 기록\\n• 앱 설정\\n\\n이 작업은 되돌릴 수 없습니다.\\n계속하시겠습니까?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () async {
-              await CalculationHistoryService.clearAllHistory();
-              await OnboardingService.resetOnboarding();
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('앱이 초기화되었습니다. 앱을 재시작해주세요.'),
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('초기화'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showHelpDialog() {
     showDialog(

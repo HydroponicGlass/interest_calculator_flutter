@@ -19,7 +19,7 @@ class AdWarningText extends StatelessWidget {
 
     switch (type) {
       case AdWarningType.calculation:
-        text = '계산시 광고가 출력됩니다.';
+        text = '다음 계산시 광고가 출력됩니다.';
         color = Colors.grey.shade600;
         break;
       case AdWarningType.account:
