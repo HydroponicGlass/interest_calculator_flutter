@@ -1,4 +1,4 @@
-name: interestcalculator
+name: new_interest_calculator
 description: "올인원 이자계산기 - 9가지 도구로 완성하는 스마트 금융계산"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
