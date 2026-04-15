@@ -1,0 +1,54 @@
+# iOS Fastlane 설정
+# 사용법:
+#   fastlane ios build    - IPA 빌드만
+#   fastlane ios deploy   - 빌드 + App Store Connect 업로드
+
+default_platform(:ios)
+
+# App Store Connect API 키 설정
+API_KEY_PATH = File.expand_path("../../../../fastlane/app_store_connect_api_key/AuthKey_8J5AB2737R.p8")
+
+platform :ios do
+
+  desc "App Store Connect API 키 로드"
+  private_lane :load_api_key do
+    app_store_connect_api_key(
+      key_id: "8J5AB2737R",
+      issuer_id: "ba181185-66e1-4a78-9954-55ef36f4605a",
+      key_filepath: API_KEY_PATH,
+    )
+  end
+
+  desc "Flutter 빌드 후 IPA 생성"
+  lane :build do
+    # Flutter 프로젝트 루트로 이동하여 빌드
+    Dir.chdir("..") do
+      sh("flutter", "clean")
+      sh("flutter", "pub", "get")
+      # CocoaPods 설치 (flutter clean 후 Podfile 복원 필요)
+      cocoapods(
+        podfile: "./ios/Podfile",
+        clean_install: true,
+      )
+      sh("flutter", "build", "ipa", "--release")
+    end
+    UI.success("IPA 빌드 완료!")
+  end
+
+  desc "빌드 후 App Store Connect에 업로드"
+  lane :deploy do
+    api_key = load_api_key
+    build
+
+    upload_to_app_store(
+      api_key: api_key,
+      ipa: "../build/ios/ipa/new_interest_calculator.ipa",
+      skip_metadata: true,
+      skip_screenshots: true,
+      precheck_include_in_app_purchases: false,
+      force: true,
+    )
+    UI.success("App Store Connect에 업로드 완료!")
+  end
+
+end

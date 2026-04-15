@@ -1,0 +1,36 @@
+# Android Fastlane 설정
+# 사용법:
+#   fastlane android build    - AAB 빌드만
+#   fastlane android deploy   - 빌드 + Play Store 프로덕션 업로드
+
+default_platform(:android)
+
+platform :android do
+
+  desc "Flutter 빌드 후 AAB 생성"
+  lane :build do
+    # Flutter 프로젝트 루트로 이동하여 빌드
+    Dir.chdir("..") do
+      sh("flutter", "clean")
+      sh("flutter", "pub", "get")
+      sh("flutter", "build", "appbundle", "--release")
+    end
+    UI.success("AAB 빌드 완료!")
+  end
+
+  desc "빌드 후 Google Play 프로덕션에 업로드"
+  lane :deploy do
+    build
+
+    upload_to_play_store(
+      track: "production",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      release_status: "completed",
+    )
+    UI.success("Google Play 프로덕션에 업로드 완료!")
+  end
+
+end
